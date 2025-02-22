@@ -3,6 +3,61 @@
 ## Project Overview
 A comprehensive golf cart transportation service management system with mobile apps for users and drivers, and a web dashboard for administrators.
 
+## Getting Started
+
+### Prerequisites
+- Python 3.8+
+- Node.js 16+
+- Flutter 3.0+
+- PostgreSQL (optional, SQLite for development)
+
+### Running the Backend
+1. Navigate to the backend directory:
+```bash
+cd chalo_kart_backend
+```
+
+2. Create and activate a virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+4. Run migrations:
+```bash
+python manage.py migrate
+```
+
+5. Start the development server:
+```bash
+python manage.py runserver
+```
+
+The backend will be available at http://localhost:8000
+
+### Running the Flutter App
+1. Navigate to the Flutter app directory:
+```bash
+cd chalo_cart_flutter
+```
+
+2. Get dependencies:
+```bash
+flutter pub get
+```
+
+3. Run the app:
+```bash
+flutter run
+```
+
+Choose your target device when prompted (iOS simulator, Android emulator, or physical device)
+
 ## Core Features Roadmap
 
 ### Phase 1: Authentication & User Management
@@ -265,4 +320,3 @@ A comprehensive golf cart transportation service management system with mobile a
 - Security alerts
 - Resource usage
 - Cost analysis
-
