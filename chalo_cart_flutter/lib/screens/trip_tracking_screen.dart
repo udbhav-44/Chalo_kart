@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../services/real_time_service.dart';
 import '../services/location_service.dart';
 import 'dart:io';
@@ -18,7 +19,7 @@ class TripTrackingScreen extends StatefulWidget {
 }
 
 class _TripTrackingScreenState extends State<TripTrackingScreen> {
-  final mapController = MapController();
+  MapController? mapController;
   LatLng? _driverLocation;
   LatLng? _currentLocation;
   bool _isConnected = false;
@@ -34,6 +35,7 @@ class _TripTrackingScreenState extends State<TripTrackingScreen> {
   @override
   void initState() {
     super.initState();
+    mapController = MapController();
     _initializeTracking();
   }
   
@@ -48,8 +50,8 @@ class _TripTrackingScreenState extends State<TripTrackingScreen> {
       }
       
       final location = await LocationService.getCurrentLocation();
-      if (mounted) {
-        setState(() => _currentLocation = location);
+      if (mounted && location != null) {
+        setState(() => _currentLocation = LatLng(location.latitude, location.longitude));
       }
       
       _realTimeService = RealTimeService(
@@ -84,16 +86,18 @@ class _TripTrackingScreenState extends State<TripTrackingScreen> {
     try {
       if (data['driver_location'] != null) {
         final location = data['driver_location'];
+        final newDriverLocation = LatLng(
+          location['latitude'].toDouble(),
+          location['longitude'].toDouble(),
+        );
+        
         setState(() {
-          _driverLocation = LatLng(
-            location['latitude'].toDouble(),
-            location['longitude'].toDouble(),
-          );
+          _driverLocation = newDriverLocation;
         });
         
         // Center map on driver if this is the first update
         if (_driverLocation != null && !_isConnected) {
-          mapController.move(_driverLocation!, 14);
+          mapController?.move(_driverLocation!, 14);
         }
       }
       
@@ -168,41 +172,46 @@ class _TripTrackingScreenState extends State<TripTrackingScreen> {
               options: MapOptions(
                 initialCenter: _currentLocation ?? const LatLng(37.42796133580664, -122.085749655962),
                 initialZoom: 14,
+                minZoom: 4,
+                maxZoom: 18,
               ),
               children: [
                 TileLayer(
-                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'com.example.chalo_cart_flutter',
+                  urlTemplate: 'https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token={accessToken}',
+                  additionalOptions: {
+                    'accessToken': dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '',
+                  },
                 ),
-                MarkerLayer(
-                  markers: [
-                    if (_driverLocation != null)
-                      Marker(
-                        point: _driverLocation!,
-                        width: 40,
-                        height: 40,
-                        child: const Icon(Icons.directions_car, color: Colors.blue),
-                      ),
-                    if (_currentLocation != null)
+                if (_currentLocation != null)
+                  MarkerLayer(
+                    markers: [
                       Marker(
                         point: _currentLocation!,
                         width: 40,
                         height: 40,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.blue,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                          ),
-                          child: const Icon(
-                            Icons.my_location,
-                            color: Colors.white,
-                            size: 20,
-                          ),
+                        child: const Icon(
+                          Icons.my_location,
+                          color: Colors.red,
+                          size: 30,
                         ),
                       ),
-                  ],
-                ),
+                    ],
+                  ),
+                if (_driverLocation != null)
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: _driverLocation!,
+                        width: 40,
+                        height: 40,
+                        child: const Icon(
+                          Icons.directions_car,
+                          color: Colors.blue,
+                          size: 36,
+                        ),
+                      ),
+                    ],
+                  ),
               ],
             ),
           if (!_isConnected && !_isLoading && _errorMessage == null)
@@ -221,6 +230,25 @@ class _TripTrackingScreenState extends State<TripTrackingScreen> {
                   ],
                 ),
               ),
+            ),
+        ],
+      ),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          if (_currentLocation != null)
+            FloatingActionButton(
+              heroTag: 'locate_user',
+              onPressed: () => mapController?.move(_currentLocation!, 14),
+              child: const Icon(Icons.my_location),
+            ),
+          const SizedBox(height: 8),
+          if (_driverLocation != null)
+            FloatingActionButton(
+              heroTag: 'locate_driver',
+              onPressed: () => mapController?.move(_driverLocation!, 14),
+              backgroundColor: Colors.blue,
+              child: const Icon(Icons.directions_car),
             ),
         ],
       ),

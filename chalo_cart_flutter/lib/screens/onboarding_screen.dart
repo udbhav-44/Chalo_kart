@@ -14,20 +14,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   int _currentPage = 0;
 
   final List<OnboardingPage> _pages = [
-    const OnboardingPage(
+     const OnboardingPage(
       title: 'Welcome to Chalo Cart',
       description: 'Your campus transportation solution',
-      image: Icons.electric_car,
+      images:  [AssetImage('assets/assests/images/cart.png')],
     ),
     const OnboardingPage(
       title: 'Easy Booking',
       description: 'Book your ride with just a few taps',
-      image: Icons.touch_app,
+      images: [Icons.touch_app],
     ),
     const OnboardingPage(
       title: 'Track Your Ride',
       description: 'Know exactly where your ride is',
-      image: Icons.location_on,
+      images: [Icons.location_on],
     ),
   ];
 
@@ -51,7 +51,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.primary,
       body: SafeArea(
         child: Column(
           children: [
@@ -68,7 +68,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.all(20.0),
               child: Column(
                 children: [
                   Row(
@@ -82,8 +82,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: _currentPage == index
-                              ? AppColors.primary
-                              : AppColors.primary.withAlpha(50),
+                              ? AppColors.primaryWhite
+                              : AppColors.primaryWhite.withAlpha(50),
                         ),
                       ),
                     ),
@@ -115,26 +115,46 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 class OnboardingPage extends StatelessWidget {
   final String title;
   final String description;
-  final IconData image;
+  final List<dynamic> images;
 
   const OnboardingPage({
     super.key,
     required this.title,
     required this.description,
-    required this.image,
+    required this.images,
   });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.all(22.0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            image,
-            size: 120,
-            color: AppColors.primary,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: images.map((image) {
+              if (image is IconData) {
+                return Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Icon(
+                    image,
+                    size: 80,
+                    color: AppColors.primaryBack,
+                  ),
+                );
+              } else if (image is AssetImage) {
+                return Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Image(
+                    image: image,
+                    height: 200,
+                    width: 200,
+                  ),
+                );
+              }
+              return const SizedBox();
+            }).toList(),
           ),
           const SizedBox(height: 48),
           Text(

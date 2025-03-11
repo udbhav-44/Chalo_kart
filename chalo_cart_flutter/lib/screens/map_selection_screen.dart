@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../services/location_service.dart';
 import '../services/api_service.dart';
 
@@ -18,7 +19,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
   LatLng? _currentLocation;
   bool _isLoading = true;
   String? _errorMessage;
-  final mapController = MapController();
+  MapController? mapController;
   bool _isSearching = false;
   List<Map<String, dynamic>>? _searchResults;
   final _apiService = ApiService();
@@ -27,6 +28,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
   @override
   void initState() {
     super.initState();
+    mapController = MapController();
     _initializeLocation();
   }
   
@@ -36,7 +38,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
         _selectedPosition = widget.initialLocation;
         _isLoading = false;
       });
-      _updateAddress(widget.initialLocation!);
+      _updateAddress(_selectedPosition!);
       return;
     }
     
@@ -50,9 +52,9 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
     
     try {
       final location = await LocationService.getCurrentLocation();
-      if (mounted) {
+      if (mounted && location != null) {
         setState(() {
-          _currentLocation = location;
+          _currentLocation = LatLng(location.latitude, location.longitude);
           _isLoading = false;
         });
       }
@@ -96,7 +98,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
       _isSearching = false;
       _searchResults = null;
     });
-    mapController.move(location, 16);
+    mapController?.move(location, 16);
   }
 
   void _onMapTap(TapPosition tapPosition, LatLng point) {
@@ -169,68 +171,46 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                     initialCenter: _selectedPosition ?? _currentLocation ?? const LatLng(37.42796133580664, -122.085749655962),
                     initialZoom: 14,
                     onTap: _onMapTap,
+                    minZoom: 4,
+                    maxZoom: 18,
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.example.chalo_cart_flutter',
+                      urlTemplate: 'https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token={accessToken}',
+                      additionalOptions: {
+                        'accessToken': dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '',
+                      },
                     ),
-                    MarkerLayer(
-                      markers: [
-                        if (_selectedPosition != null)
-                          Marker(
-                            point: _selectedPosition!,
-                            width: 40,
-                            height: 40,
-                            child: Column(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(20),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withAlpha((0.5 * 255).round()),
-                                        blurRadius: 6,
-                                      ),
-                                    ],
-                                  ),
-                                  child: const Text(
-                                    'Selected',
-                                    style: TextStyle(fontSize: 12),
-                                  ),
-                                ),
-                                const Icon(Icons.location_pin, color: Colors.red),
-                              ],
-                            ),
-                          ),
-                        if (_currentLocation != null)
+                    if (_currentLocation != null)
+                      MarkerLayer(
+                        markers: [
                           Marker(
                             point: _currentLocation!,
                             width: 40,
                             height: 40,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.blue,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 2),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withAlpha((0.3 * 255).round()),
-                                    blurRadius: 6,
-                                  ),
-                                ],
-                              ),
-                              child: const Icon(
-                                Icons.my_location,
-                                color: Colors.white,
-                                size: 20,
-                              ),
+                            child: const Icon(
+                              Icons.my_location,
+                              color: Colors.blue,
+                              size: 30,
                             ),
                           ),
-                      ],
-                    ),
+                        ],
+                      ),
+                    if (_selectedPosition != null)
+                      MarkerLayer(
+                        markers: [
+                          Marker(
+                            point: _selectedPosition!,
+                            width: 40,
+                            height: 40,
+                            child: const Icon(
+                              Icons.location_pin,
+                              color: Colors.red,
+                              size: 36,
+                            ),
+                          ),
+                        ],
+                      ),
                   ],
                 ),
                 if (_searchResults != null)
@@ -279,25 +259,37 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
           if (_currentLocation != null)
             FloatingActionButton(
               heroTag: 'locate',
-              onPressed: () => mapController.move(_currentLocation!, 14),
+              onPressed: () => mapController?.move(_currentLocation!, 14),
               child: const Icon(Icons.my_location),
             ),
           const SizedBox(height: 16),
           FloatingActionButton(
             heroTag: 'zoom_in',
-            onPressed: () => mapController.move(
-              mapController.camera.center,
-              mapController.camera.zoom + 1,
-            ),
+            onPressed: () {
+              final currentZoom = mapController?.zoom ?? 14;
+              mapController?.move(
+                mapController?.center ?? 
+                _selectedPosition ?? 
+                _currentLocation ?? 
+                const LatLng(37.42796133580664, -122.085749655962),
+                currentZoom + 1,
+              );
+            },
             child: const Icon(Icons.add),
           ),
           const SizedBox(height: 8),
           FloatingActionButton(
             heroTag: 'zoom_out',
-            onPressed: () => mapController.move(
-              mapController.camera.center,
-              mapController.camera.zoom - 1,
-            ),
+            onPressed: () {
+              final currentZoom = mapController?.zoom ?? 14;
+              mapController?.move(
+                mapController?.center ?? 
+                _selectedPosition ?? 
+                _currentLocation ?? 
+                const LatLng(37.42796133580664, -122.085749655962),
+                currentZoom - 1,
+              );
+            },
             child: const Icon(Icons.remove),
           ),
         ],

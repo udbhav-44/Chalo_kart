@@ -30,6 +30,13 @@ flutter run
 - For iOS development, run `pod install` in the ios/ directory
 - For Android development, ensure you have the latest Android SDK
 
+### Test Credentials
+- **User Account**:
+  - Email: test@example.com
+  - Password: Password123!
+
+
+
 ### Troubleshooting
 - If you encounter build errors, try:
   ```bash
@@ -40,7 +47,7 @@ flutter run
   ```bash
   cd ios
   pod install
-  cd ..
+  
   ```
 
 ## Additional Resources

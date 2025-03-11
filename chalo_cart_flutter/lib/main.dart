@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 // import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'core/utils/route_transitions.dart';
 
@@ -27,6 +28,9 @@ import 'core/configs/theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Load environment variables
+  await dotenv.load(fileName: '.env');
   
   // Request location permissions at app startup
   await Geolocator.requestPermission();

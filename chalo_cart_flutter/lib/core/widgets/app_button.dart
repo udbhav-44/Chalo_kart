@@ -40,7 +40,7 @@ class AppButton extends StatelessWidget {
           : ElevatedButton(
               onPressed: isLoading ? null : onPressed,
               style: ElevatedButton.styleFrom(
-                backgroundColor: color ?? AppColors.primary,
+                backgroundColor: color ?? AppColors.primaryWhite,
                 padding: padding ?? const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -66,6 +66,7 @@ class AppButton extends StatelessWidget {
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
+              color: AppColors.primary,
             ),
           );
   }
