@@ -1,28 +1,33 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
+from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.hashers import make_password
 
-class User(models.Model):
+class User(AbstractUser):
     user_name = models.CharField(max_length=100)
     email = models.EmailField(max_length=100, unique=True)
-    password = models.CharField(max_length=128)
     phone = models.CharField(max_length=15, blank=True, null=True)
     address = models.TextField(blank=True, null=True)
     city = models.CharField(max_length=100, blank=True, null=True)
     state = models.CharField(max_length=100, blank=True, null=True)
     country = models.CharField(max_length=100, blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False)
+    otp = models.CharField(max_length=6, blank=True, null=True)  # Field to store OTP temporarily
+    username = models.CharField(max_length=100, unique=True, default='')  # Add default value
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username', 'user_name']
+
+    class Meta:
+        verbose_name = 'User'
+        verbose_name_plural = 'Users'
 
     def __str__(self):
         return f"{self.user_name} ({self.email})"
 
     def save(self, *args, **kwargs):
-        if not self.password.startswith("pbkdf2_"):
-            self.password = make_password(self.password)
+        if not self.username:
+            self.username = self.email
         super().save(*args, **kwargs)
 
 class Customer(User):
@@ -35,8 +40,12 @@ class Customer(User):
         default='WALLET'
     )
 
+    class Meta:
+        verbose_name = 'Rider'
+        verbose_name_plural = 'Riders'
+
     def __str__(self):
-        return f"Customer: {self.user_name}"
+        return f"Rider: {self.user_name}"
 
 class Driver(User):
     driving_license = models.CharField(max_length=50, unique=True)
@@ -50,8 +59,12 @@ class Driver(User):
     is_available = models.BooleanField(default=False)
     last_location_update = models.DateTimeField(null=True, blank=True)
 
+    class Meta:
+        verbose_name = 'Driver'
+        verbose_name_plural = 'Drivers'
+
     def __str__(self):
-        return f"Driver: {self.user_name} (Rating: {self.rating})"
+        return f"Driver: {self.user_name}"
 
 class GolfCart(models.Model):
     gc_id = models.CharField(max_length=50, primary_key=True)

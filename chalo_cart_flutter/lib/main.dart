@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 // import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'core/utils/route_transitions.dart';
 
@@ -8,7 +10,7 @@ import 'screens/onboarding_screen.dart';
 
 import 'screens/login_screen.dart';
 import 'screens/sign_up_screen.dart';
-import 'screens/reset_password_screen.dart';
+import 'screens/forgot_password_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/trip_booking_screen.dart';
 import 'screens/trip_tracking_screen.dart';
@@ -27,6 +29,13 @@ import 'core/configs/theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Firebase with platform-specific options
+  if (kIsWeb) {
+    await Firebase.initializeApp();
+  } else {
+    await Firebase.initializeApp();
+  }
   
   // Request location permissions at app startup
   await Geolocator.requestPermission();
@@ -54,11 +63,23 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.theme,
       initialRoute: '/onboarding',
       onGenerateRoute: (settings) {
+        // Check if user is authenticated
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        
+        // If trying to access a protected route but not authenticated, redirect to login
+        if (!authProvider.isAuthenticated && 
+            settings.name != '/login' && 
+            settings.name != '/signup' && 
+            settings.name != '/forgotPassword' &&
+            settings.name != '/onboarding') {
+          return RouteTransitions.createRoute(const LoginScreen());
+        }
+        
         final routes = {
           '/onboarding': (context) => const OnboardingScreen(),
           '/login': (context) => const LoginScreen(),
           '/signup': (context) => const SignUpScreen(),
-          '/resetPassword': (context) => const ResetPasswordScreen(),
+          '/forgotPassword': (context) => const ForgotPasswordScreen(),
           '/home': (context) => const HomeScreen(),
           '/tripBooking': (context) => const TripBookingScreen(),
           '/tripTracking': (context) {

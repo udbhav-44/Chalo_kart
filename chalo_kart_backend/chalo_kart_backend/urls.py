@@ -1,24 +1,7 @@
-"""
-URL configuration for chalo_kart project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.1/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from myapp.views import (
-    verify_forget_otp_view,
     UserViewSet, CustomerViewSet, DriverViewSet,
     TripViewSet, WalletViewSet, PaymentViewSet,
     RouteViewSet, GolfCartViewSet, debug_password_reset, test_view
@@ -46,32 +29,32 @@ urlpatterns = [
     path('test/', test_view, name='test_view'),
     
     # Debug URL for password reset
-    path('debug-password-reset/<uidb64>/<token>/', debug_password_reset, name='debug_password_reset'),
+    path('debug-password-forget/<uidb64>/<token>/', debug_password_reset, name='debug_password_forget'),
     
-    # Password reset URLs
-    path('password-reset/', auth_views.PasswordResetView.as_view(
+    # Password forget URLs
+    path('password-forget/', auth_views.PasswordResetView.as_view(
         template_name='registration/password_reset_form.html',
         email_template_name='registration/password_reset_email.html',
-        success_url='/password-reset/done/'
-    ), name='password_reset'),
-    path('password-reset/done/', auth_views.PasswordResetDoneView.as_view(
+        success_url='/password-forget/done/'
+    ), name='password_forget'),
+    path('password-forget/done/', auth_views.PasswordResetDoneView.as_view(
         template_name='registration/password_reset_done.html'
-    ), name='password_reset_done'),
-    path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(
+    ), name='password_forget_done'),
+    path('forget/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(
         template_name='registration/password_reset_confirm.html',
-        success_url='/password-reset/complete/'
-    ), name='password_reset_confirm'),
-    path('password-reset/complete/', auth_views.PasswordResetCompleteView.as_view(
+        success_url='/password-forget/complete/'
+    ), name='password_forget_confirm'),
+    path('password-forget/complete/', auth_views.PasswordResetCompleteView.as_view(
         template_name='registration/password_reset_complete.html'
-    ), name='password_reset_complete'),
+    ), name='password_forget_complete'),
     
     # API URLs
     path('api/', include(router.urls)),
     path('api/users/send_otp/', UserViewSet.as_view({'post': 'send_otp'}), name='send_otp'),
     path('api/users/verify_otp/', UserViewSet.as_view({'post': 'verify_otp'}), name='verify_otp'),
     path('api/users/forgot_password_request/', UserViewSet.as_view({'post': 'forgot_password_request'}), name='forgot_password_request'),
-    path('api/users/verify_forget_otp/', verify_forget_otp_view, name='verify_forget_otp'),
+    path('api/users/verify_forget_otp/', UserViewSet.as_view({'post': 'verify_forget_otp'}), name='verify_forget_otp'),
     
     # Redirect root URL to /api/
     path('', lambda request: HttpResponseRedirect('/api/')),
-]
+] 

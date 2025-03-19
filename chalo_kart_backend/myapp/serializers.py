@@ -7,8 +7,8 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'user_name', 'email', 'phone', 'address', 'city', 
-                 'state', 'country', 'created_at', 'is_active']
-        read_only_fields = ['created_at', 'id']
+                 'state', 'country', 'is_active']
+        read_only_fields = ['id']
         extra_kwargs = {
             'password': {'write_only': True},
             'email': {'required': True}
@@ -186,3 +186,16 @@ class DriverSerializer(serializers.ModelSerializer):
         if Driver.objects.filter(driving_license=value).exists():
             raise serializers.ValidationError("Driver license already registered")
         return value
+
+class OTPSerializer(serializers.Serializer):
+    phone = serializers.CharField(max_length=15)
+    otp = serializers.CharField(max_length=6)
+
+    def validate(self, data):
+        phone = data.get('phone')
+        otp = data.get('otp')
+        try:
+            user = User.objects.get(phone=phone, otp=otp)
+        except User.DoesNotExist:
+            raise serializers.ValidationError('Invalid phone number or OTP')
+        return data

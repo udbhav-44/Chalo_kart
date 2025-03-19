@@ -142,9 +142,22 @@ class _LoginScreenState extends State<LoginScreen> {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () {
-                      Navigator.pushNamed(context, '/resetPassword');
+                      Navigator.pushNamed(context, '/forgotPassword');
                     },
-                    child: const Text('Forgot Password?'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF98FFCD),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                    ),
+                    child: const Text(
+                      'Forgot Password?',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),

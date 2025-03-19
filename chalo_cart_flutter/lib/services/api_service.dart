@@ -43,10 +43,22 @@ class ApiService {
       final responseData = json.decode(response.body);
       
       if (response.statusCode == 200) {
-        if (responseData['token'] == null) {
-          throw Exception('Server response missing token');
+        // Handle Django JWT response format
+        if (responseData['access'] == null) {
+          throw Exception('Server response missing access token');
         }
-        return responseData;
+        
+        // Store both access and refresh tokens
+        await StorageService.saveToken(responseData['access']);
+        if (responseData['refresh'] != null) {
+          await StorageService.saveRefreshToken(responseData['refresh']);
+        }
+        
+        return {
+          'token': responseData['access'],
+          'refresh': responseData['refresh'],
+          'user': responseData['user']
+        };
       } else {
         final errorMessage = responseData['detail'] ?? 
                            responseData['error'] ?? 

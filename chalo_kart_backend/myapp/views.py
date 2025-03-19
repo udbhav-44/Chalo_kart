@@ -15,15 +15,38 @@ from .serializers import (
 import logging
 from django.db.models import Avg, Sum
 from django.utils import timezone
-from django.db import transaction
+from django.db import transaction, models
+import firebase_admin
+from firebase_admin import credentials, auth
+import random
+from django.core.mail import send_mail
+from django.conf import settings
+import string
+import smtplib
+import ssl
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.http import HttpResponse
+import json
 
 logger = logging.getLogger(__name__)
+
+# Initialize Firebase Admin SDK
+cred = credentials.Certificate('/Users/snehasissatapathy/Desktop/CS253/Chalo_kart/chalo_kart_backend/serviceAccountKey.json')
+firebase_admin.initialize_app(cred)
 
 class BaseViewSet(viewsets.ModelViewSet):
     def handle_exception(self, exc):
         logger.error(f"Error in {self.__class__.__name__}: {str(exc)}")
         return super().handle_exception(exc)
 
+@method_decorator(csrf_exempt, name='dispatch')
 class UserViewSet(BaseViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -31,7 +54,7 @@ class UserViewSet(BaseViewSet):
     search_fields = ['user_name', 'email', 'phone']
     
     def get_permissions(self):
-        if self.action in ['login', 'register']:
+        if self.action in ['login', 'register', 'forgot_password', 'forgot_password_request', 'verify_forget_otp', 'initialize', 'update_profile']:
             return []
         if self.action in ['list', 'destroy']:
             return [IsAdminUser()]
@@ -57,17 +80,19 @@ class UserViewSet(BaseViewSet):
                         status=status.HTTP_403_FORBIDDEN
                     )
                 
-                # Use Django's built-in password hashing
-                from django.contrib.auth.hashers import check_password, make_password
-                if not check_password(password, user.password):
+                if not user.check_password(password):
                     return Response(
                         {'error': 'Invalid credentials'},
                         status=status.HTTP_401_UNAUTHORIZED
                     )
                     
+                # Generate JWT tokens
+                refresh = RefreshToken.for_user(user)
                 serializer = self.get_serializer(user)
+                
                 return Response({
-                    'token': 'dummy_token',  # Replace with proper JWT token
+                    'refresh': str(refresh),
+                    'access': str(refresh.access_token),
                     'user': serializer.data
                 })
             except User.DoesNotExist:
@@ -113,7 +138,7 @@ class UserViewSet(BaseViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        if user.password != old_password:
+        if not user.check_password(old_password):
             return Response(
                 {'error': 'Invalid old password'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -126,7 +151,7 @@ class UserViewSet(BaseViewSet):
             )
         
         try:
-            user.password = new_password
+            user.set_password(new_password)
             user.save()
             return Response({'message': 'Password changed successfully'})
         except Exception as e:
@@ -142,6 +167,468 @@ class UserViewSet(BaseViewSet):
         user.is_active = False
         user.save()
         return Response({'message': 'Account deactivated successfully'})
+
+    @action(detail=False, methods=['post'])
+    def send_otp(self, request):
+        phone = request.data.get('phone')
+        if not phone:
+            return Response({'error': 'Phone number is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # Check if user exists with this phone number
+            try:
+                user = auth.get_user_by_phone_number(phone)
+                # User exists, update their phone number verification status
+                auth.update_user(
+                    user.uid,
+                    phone_number=phone,
+                    phone_number_verified=False
+                )
+            except auth.UserNotFoundError:
+                # User doesn't exist, that's fine - they'll be created during signup
+                pass
+
+            return Response({
+                'message': 'Phone verification initiated',
+                'phone': phone
+            })
+        except Exception as e:
+            logger.error(f"Phone verification error: {str(e)}")
+            return Response(
+                {'error': 'Failed to initiate phone verification'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['post'])
+    def verify_otp(self, request):
+        try:
+            phone = request.data.get('phone')
+            verification_id = request.data.get('verification_id')
+            otp = request.data.get('otp')
+            
+            if not all([phone, verification_id, otp]):
+                return Response(
+                    {'error': 'Phone number, verification ID, and OTP are required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Verify the phone credential
+            cred = auth.PhoneAuthProvider.credential(verification_id, otp)
+            
+            try:
+                # Try to get existing user
+                user = auth.get_user_by_phone_number(phone)
+                # Update phone verification status
+                auth.update_user(
+                    user.uid,
+                    phone_number_verified=True
+                )
+            except auth.UserNotFoundError:
+                # User will be created during signup
+                pass
+
+            return Response({
+                'message': 'Phone number verified successfully',
+                'phone': phone
+            })
+        except auth.InvalidIdTokenError:
+            return Response(
+                {'error': 'Invalid verification code'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.error(f"OTP verification error: {str(e)}")
+            return Response(
+                {'error': 'Failed to verify phone number'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    def generate_otp(self):
+        """Generate a 6-digit OTP"""
+        return ''.join(random.choices(string.digits, k=6))
+
+    @action(detail=False, methods=['post'])
+    def forgot_password_request(self, request):
+        """Step 1: Generate and send OTP to user's email"""
+        try:
+            email = request.data.get('email')
+            if not email:
+                return Response(
+                    {'error': 'Email is required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            try:
+                # Check if user exists in Django
+                django_user = User.objects.get(email=email)
+                
+                # Generate OTP
+                otp = self.generate_otp()
+                
+                # Save OTP in Django User model
+                django_user.otp = otp
+                django_user.save()
+
+                # Send OTP via email
+                subject = 'Password Reset OTP'
+                message = f'Your OTP for password reset is: {otp}\nThis OTP is valid for 10 minutes.'
+                
+                # Create email message
+                msg = MIMEMultipart()
+                msg['From'] = settings.EMAIL_HOST_USER
+                msg['To'] = email
+                msg['Subject'] = subject
+                msg.attach(MIMEText(message, 'plain'))
+
+                # Create SSL context
+                context = ssl.create_default_context()
+
+                # Connect using SSL
+                with smtplib.SMTP_SSL(settings.EMAIL_HOST, settings.EMAIL_PORT, context=context) as server:
+                    # Login to the server
+                    server.login(settings.EMAIL_HOST_USER, settings.EMAIL_HOST_PASSWORD)
+                    
+                    # Send email
+                    server.send_message(msg)
+
+                return Response({
+                    'message': 'OTP has been sent to your email',
+                    'email': email
+                })
+
+            except User.DoesNotExist:
+                return Response(
+                    {'error': 'No user found with this email'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            except Exception as e:
+                logger.error(f"Email sending error: {str(e)}")
+                return Response(
+                    {'error': 'Failed to send OTP email'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+        except Exception as e:
+            logger.error(f"Forgot password request error: {str(e)}")
+            return Response(
+                {'error': f'Failed to process forgot password request: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['post'], permission_classes=[])
+    def verify_forget_otp(self, request):
+        """Step 2: Verify OTP and send Django password forget link"""
+        try:
+            email = request.data.get('email')
+            otp = request.data.get('otp')
+
+            if not email or not otp:
+                return Response(
+                    {'error': 'Email and OTP are required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            try:
+                # Verify OTP in Django User model
+                django_user = User.objects.get(email=email, otp=otp)
+                
+                # Clear the OTP after successful verification
+                django_user.otp = None
+                django_user.save()
+
+                # Generate Django password forget token
+                token = default_token_generator.make_token(django_user)
+                uid = urlsafe_base64_encode(force_bytes(django_user.pk))
+                
+                # Create forget link with the correct URL pattern
+                forget_link = f"{request.scheme}://{request.get_host()}/forget/{uid}/{token}/"
+                
+                # Send forget link via email
+                subject = 'Password Forget Link'
+                message = f'Click the following link to forget your password:\n{forget_link}\nThis link is valid for 24 hours.'
+                
+                # Create email message
+                msg = MIMEMultipart()
+                msg['From'] = settings.EMAIL_HOST_USER
+                msg['To'] = email
+                msg['Subject'] = subject
+                msg.attach(MIMEText(message, 'plain'))
+
+                # Create SSL context
+                context = ssl.create_default_context()
+
+                # Connect using SSL
+                with smtplib.SMTP_SSL(settings.EMAIL_HOST, settings.EMAIL_PORT, context=context) as server:
+                    # Login to the server
+                    server.login(settings.EMAIL_HOST_USER, settings.EMAIL_HOST_PASSWORD)
+                    
+                    # Send email
+                    server.send_message(msg)
+
+                return Response({
+                    'message': 'Password forget link has been sent to your email'
+                })
+
+            except User.DoesNotExist:
+                return Response(
+                    {'error': 'Invalid OTP'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            except Exception as e:
+                logger.error(f"Forget link generation error: {str(e)}")
+                return Response(
+                    {'error': 'Failed to generate forget link'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+        except Exception as e:
+            logger.error(f"OTP verification error: {str(e)}")
+            return Response(
+                {'error': 'Failed to verify OTP'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    # Remove or deprecate the old forgot_password method
+    @action(detail=False, methods=['post'])
+    def forgot_password(self, request):
+        """Deprecated: Use forgot_password_request instead"""
+        return Response(
+            {'error': 'This endpoint is deprecated. Please use /forgot_password_request/'},
+            status=status.HTTP_410_GONE
+        )
+
+    @action(detail=False, methods=['post'])
+    def reset_password(self, request):
+        try:
+            oob_code = request.data.get('oob_code')
+            new_password = request.data.get('new_password')
+
+            if not oob_code or not new_password:
+                return Response(
+                    {'error': 'OOB code and new password are required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Verify the OOB code and update the password
+            auth.verify_password_reset_code(oob_code)
+            auth.confirm_password_reset(oob_code, new_password)
+
+            return Response({
+                'message': 'Password forgot successfully'
+            })
+        except auth.InvalidActionCodeError:
+            return Response(
+                {'error': 'Invalid or expired forget code'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except auth.ExpiredActionCodeError:
+            return Response(
+                {'error': 'Forget code has expired'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.error(f"Password forget error: {str(e)}")
+            return Response(
+                {'error': 'Failed to forget password'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['post'], permission_classes=[])
+    def initialize(self, request):
+        """Initialize a user in Django based on Firebase credentials"""
+        try:
+            # Get data from request
+            firebase_uid = request.data.get('uid') or request.data.get('firebase_uid')  # Support both parameter names
+            email = request.data.get('email')
+            phone_number = request.data.get('phone_number')
+            name = request.data.get('name')  # Get the name from the request
+            password = request.data.get('password')  # Get the password from the request
+            student_id = request.data.get('student_id')  # Get student ID if available
+            
+            if not firebase_uid or not email:
+                return Response(
+                    {'error': 'Firebase UID and email are required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            logger.info(f"Initializing user with UID: {firebase_uid}, email: {email}, name: {name}")
+            
+            # Check if user already exists
+            try:
+                user = User.objects.get(email=email)
+                # Update the name if provided
+                if name and name.strip():
+                    user.user_name = name
+                    user.save()
+                    logger.info(f"Updated name for existing user: {email}")
+                
+                # Update password if provided
+                if password and len(password) >= 8:
+                    user.set_password(password)
+                    user.save()
+                    logger.info(f"Updated password for existing user: {email}")
+                
+                # Handle student ID if provided
+                if student_id:
+                    self._handle_student_id(user, student_id)
+                
+                logger.info(f"User already exists: {email}")
+                return Response(
+                    {'message': 'User already exists', 'user_id': user.id},
+                    status=status.HTTP_200_OK
+                )
+            except User.DoesNotExist:
+                # Create new user
+                username = email  # Use email as username
+                user_name = name if name and name.strip() else email.split('@')[0]  # Use provided name or fallback to email username
+                
+                user = User.objects.create(
+                    email=email,
+                    username=username,
+                    user_name=user_name,
+                    phone=phone_number
+                )
+                
+                # Set password if provided, otherwise set unusable password
+                if password and len(password) >= 8:
+                    user.set_password(password)
+                    logger.info(f"Set password for new user: {email}")
+                else:
+                    user.set_unusable_password()
+                    logger.info(f"Set unusable password for new user: {email} (Firebase auth only)")
+                
+                user.save()
+                
+                # Create wallet for the user
+                from .models import Wallet
+                Wallet.objects.create(user=user)
+                
+                # Handle student ID if provided
+                if student_id:
+                    self._handle_student_id(user, student_id)
+                
+                logger.info(f"User initialized successfully: {email} with name: {user_name}")
+                return Response(
+                    {'message': 'User initialized successfully', 'user_id': user.id},
+                    status=status.HTTP_201_CREATED
+                )
+        except Exception as e:
+            logger.error(f"User initialization error: {str(e)}")
+            return Response(
+                {'error': f'Failed to initialize user: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+            
+    def _handle_student_id(self, user, student_id):
+        """Helper method to handle student ID for a user"""
+        try:
+            # Try to get or create a Customer record
+            try:
+                customer = Customer.objects.get(email=user.email)
+            except Customer.DoesNotExist:
+                # Convert User to Customer
+                customer = Customer(
+                    id=user.id,
+                    username=user.username,
+                    email=user.email,
+                    user_name=user.user_name,
+                    phone=user.phone,
+                    password=user.password
+                )
+                customer.save()
+            
+            # Update customer fields
+            customer.is_student = True
+            customer.govt_id = student_id
+            customer.save()
+            logger.info(f"Updated student ID for user: {user.email}")
+        except Exception as e:
+            logger.error(f"Error handling student ID: {str(e)}")
+            # Don't raise the exception, just log it
+
+    @action(detail=False, methods=['post'], permission_classes=[])
+    def update_profile(self, request):
+        """Update a user's profile in Django based on Firebase credentials"""
+        try:
+            # Get data from request
+            email = request.data.get('email')
+            name = request.data.get('name')
+            phone_number = request.data.get('phone_number')
+            student_id = request.data.get('student_id')
+            
+            if not email:
+                return Response(
+                    {'error': 'Email is required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Find the user by email
+            try:
+                user = User.objects.get(email=email)
+                
+                # Update user fields
+                if name and name.strip():
+                    user.user_name = name
+                    logger.info(f"Updated name for user {email} to: {name}")
+                if phone_number:
+                    user.phone = phone_number
+                
+                user.save()
+                
+                # Check if this is a student
+                if student_id:
+                    # Try to get or create a Customer record
+                    try:
+                        customer = Customer.objects.get(email=email)
+                    except Customer.DoesNotExist:
+                        # Convert User to Customer
+                        customer = Customer(
+                            id=user.id,
+                            username=user.username,
+                            email=user.email,
+                            user_name=user.user_name,
+                            phone=user.phone,
+                            password=user.password
+                        )
+                        customer.save()
+                    
+                    # Update customer fields
+                    customer.is_student = True
+                    customer.govt_id = student_id
+                    customer.save()
+                
+                logger.info(f"User profile updated successfully: {email}")
+                return Response(
+                    {'message': 'User profile updated successfully'},
+                    status=status.HTTP_200_OK
+                )
+            except User.DoesNotExist:
+                return Response(
+                    {'error': 'User not found'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        except Exception as e:
+            logger.error(f"User profile update error: {str(e)}")
+            return Response(
+                {'error': f'Failed to update user profile: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+# Add a debug view for password forget
+@csrf_exempt
+def debug_password_reset(request, uidb64, token):
+    try:
+        # Decode the user id
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+        
+        # Verify the token
+        if default_token_generator.check_token(user, token):
+            return HttpResponse(f"Valid forget link for user: {user.email}")
+        else:
+            return HttpResponse("Invalid token")
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        return HttpResponse("Invalid user")
 
 class CustomerViewSet(BaseViewSet):
     queryset = Customer.objects.all()
@@ -632,3 +1119,91 @@ class PaymentViewSet(BaseViewSet):
                 {'error': 'Failed to generate monthly report'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+# Add a simple test view
+@csrf_exempt
+def test_view(request):
+    return HttpResponse("Test view is working!")
+
+# Add a standalone view function for verify_forget_otp
+@csrf_exempt
+def verify_forget_otp_view(request):
+    """Standalone view for verifying OTP and sending Django password forget link"""
+    if request.method != 'POST':
+        return HttpResponse("Method not allowed", status=405)
+    
+    try:
+        data = json.loads(request.body)
+        email = data.get('email')
+        otp = data.get('otp')
+
+        if not email or not otp:
+            return HttpResponse(
+                json.dumps({'error': 'Email and OTP are required'}),
+                content_type='application/json',
+                status=400
+            )
+
+        try:
+            # Verify OTP in Django User model
+            django_user = User.objects.get(email=email, otp=otp)
+            
+            # Clear the OTP after successful verification
+            django_user.otp = None
+            django_user.save()
+
+            # Generate Django password forget token
+            token = default_token_generator.make_token(django_user)
+            uid = urlsafe_base64_encode(force_bytes(django_user.pk))
+            
+            # Create forget link with the correct URL pattern
+            forget_link = f"{request.scheme}://{request.get_host()}/forget/{uid}/{token}/"
+            
+            # Send forget link via email
+            subject = 'Password Forget Link'
+            message = f'Click the following link to forget your password:\n{forget_link}\nThis link is valid for 24 hours.'
+            
+            # Create email message
+            msg = MIMEMultipart()
+            msg['From'] = settings.EMAIL_HOST_USER
+            msg['To'] = email
+            msg['Subject'] = subject
+            msg.attach(MIMEText(message, 'plain'))
+
+            # Create SSL context
+            context = ssl.create_default_context()
+
+            # Connect using SSL
+            with smtplib.SMTP_SSL(settings.EMAIL_HOST, settings.EMAIL_PORT, context=context) as server:
+                # Login to the server
+                server.login(settings.EMAIL_HOST_USER, settings.EMAIL_HOST_PASSWORD)
+                
+                # Send email
+                server.send_message(msg)
+
+            return HttpResponse(
+                json.dumps({'message': 'Password forget link has been sent to your email'}),
+                content_type='application/json'
+            )
+
+        except User.DoesNotExist:
+            return HttpResponse(
+                json.dumps({'error': 'Invalid OTP'}),
+                content_type='application/json',
+                status=400
+            )
+        except Exception as e:
+            logger.error(f"Forget link generation error: {str(e)}")
+            return HttpResponse(
+                json.dumps({'error': 'Failed to generate forget link'}),
+                content_type='application/json',
+                status=500
+            )
+
+    except Exception as e:
+        logger.error(f"OTP verification error: {str(e)}")
+        return HttpResponse(
+            json.dumps({'error': 'Failed to verify OTP'}),
+            content_type='application/json',
+            status=500
+        )

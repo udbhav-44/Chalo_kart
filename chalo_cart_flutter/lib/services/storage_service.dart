@@ -12,6 +12,7 @@ class StorageService {
   );
   
   static const String _tokenKey = 'auth_token';
+  static const String _refreshTokenKey = 'refresh_token';
   static const String _userKey = 'user_data';
   
   // Token management
@@ -21,6 +22,34 @@ class StorageService {
     } catch (e) {
       debugPrint('Error saving token: $e');
       _memoryStorage[_tokenKey] = token;
+    }
+  }
+  
+  // Refresh token management
+  static Future<void> saveRefreshToken(String token) async {
+    try {
+      await _storage.write(key: _refreshTokenKey, value: token);
+    } catch (e) {
+      debugPrint('Error saving refresh token: $e');
+      _memoryStorage[_refreshTokenKey] = token;
+    }
+  }
+  
+  static Future<String?> getRefreshToken() async {
+    try {
+      return await _storage.read(key: _refreshTokenKey);
+    } catch (e) {
+      debugPrint('Error reading refresh token: $e');
+      return _memoryStorage[_refreshTokenKey] as String?;
+    }
+  }
+  
+  static Future<void> deleteRefreshToken() async {
+    try {
+      await _storage.delete(key: _refreshTokenKey);
+    } catch (e) {
+      debugPrint('Error deleting refresh token: $e');
+      _memoryStorage.remove(_refreshTokenKey);
     }
   }
   

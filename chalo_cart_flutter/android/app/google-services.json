@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "805332820730",
+    "project_id": "chalokart-3167e",
+    "storage_bucket": "chalokart-3167e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:805332820730:android:f12921456dda09a0de9f43",
+        "android_client_info": {
+          "package_name": "com.chalocart.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB2YyI7XCn2xoPABS4ayR2_av1owRQcpO8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
