@@ -1,5 +1,9 @@
 # Chalo Kart - Golf Cart Management System
 
+**The super user id is eegotlatent@gmail.com
+password : cs253kimkc**
+
+
 ## Project Overview
 A comprehensive golf cart transportation service management system with mobile apps for users and drivers, and a web dashboard for administrators.
 
