@@ -1,8 +1,6 @@
-import 'package:chalokart/screens/main_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
-import 'screens/splash_screen.dart';
 import 'screens/sign_in_screen.dart';
 import 'screens/sign_up_screen.dart';
 import 'screens/forgot_password_screen.dart';
@@ -47,7 +45,7 @@ class MyApp extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                stops: [0,0.32,0.32,1],
+                stops: [0, 0.32, 0.32, 1],
                 colors: [
                   AppColors.primaryColor,
                   AppColors.primaryColor,
@@ -67,8 +65,8 @@ class MyApp extends StatelessWidget {
           '/forgot-password': (context) => const ForgotPasswordScreen(),
           '/home': (context) => const HomeScreen(),
           '/verify-email': (context) => VerifyEmailScreen(
-            email: ModalRoute.of(context)!.settings.arguments as String,
-          ),
+                email: ModalRoute.of(context)!.settings.arguments as String,
+              ),
         },
       ),
     );

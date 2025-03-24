@@ -1,6 +1,4 @@
-
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -10,20 +8,19 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-
-  final nameTextEditingController=TextEditingController();
-  final phoneTextEditingController=TextEditingController();
-  final addressTextEditingController=TextEditingController();
+  final nameTextEditingController = TextEditingController();
+  final phoneTextEditingController = TextEditingController();
+  final addressTextEditingController = TextEditingController();
 
   // DatabaseReference userRef =FirebaseDatabase.instance.ref().child("users");
 
-  Future<void> showUserNameDialogAlert(BuildContext context, String name){
-    nameTextEditingController.text=name;
+  Future<void> showUserNameDialogAlert(BuildContext context, String name) {
+    nameTextEditingController.text = name;
     return showDialog(
         context: context,
-        builder: (context){
+        builder: (context) {
           return AlertDialog(
-            title: Text("Update"),
+            title: const Text("Update"),
             content: SingleChildScrollView(
               child: Column(
                 children: [
@@ -35,13 +32,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             actions: [
               TextButton(
-                  onPressed: (){
+                  onPressed: () {
                     Navigator.pop(context);
                   },
-                  child: Text("Cancel", style: TextStyle(color: Colors.red),)
-              ),
+                  child: const Text(
+                    "Cancel",
+                    style: TextStyle(color: Colors.red),
+                  )),
               TextButton(
-                  onPressed: (){
+                  onPressed: () {
                     // userRef.child(firebaseAuth.currentUser!.uid).update({
                     //   "name":nameTextEditingController.text.trim(),
                     // }).then((value){
@@ -52,21 +51,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     // });
                     Navigator.pop(context);
                   },
-                  child: Text("OK", style: TextStyle(color: Colors.black),)
-              )
+                  child: const Text(
+                    "OK",
+                    style: TextStyle(color: Colors.black),
+                  ))
             ],
           );
-        }
-    );
+        });
   }
 
-  Future<void> showUserPhoneDialogAlert(BuildContext context, String phone){
-    phoneTextEditingController.text=phone;
+  Future<void> showUserPhoneDialogAlert(BuildContext context, String phone) {
+    phoneTextEditingController.text = phone;
     return showDialog(
         context: context,
-        builder: (context){
+        builder: (context) {
           return AlertDialog(
-            title: Text("Update"),
+            title: const Text("Update"),
             content: SingleChildScrollView(
               child: Column(
                 children: [
@@ -78,13 +78,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             actions: [
               TextButton(
-                  onPressed: (){
+                  onPressed: () {
                     Navigator.pop(context);
                   },
-                  child: Text("Cancel", style: TextStyle(color: Colors.red),)
-              ),
+                  child: const Text(
+                    "Cancel",
+                    style: TextStyle(color: Colors.red),
+                  )),
               TextButton(
-                  onPressed: (){
+                  onPressed: () {
                     // userRef.child(firebaseAuth.currentUser!.uid).update({
                     //   "phone":phoneTextEditingController.text.trim(),
                     // }).then((value){
@@ -95,21 +97,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     // });
                     Navigator.pop(context);
                   },
-                  child: Text("OK", style: TextStyle(color: Colors.black),)
-              )
+                  child: const Text(
+                    "OK",
+                    style: TextStyle(color: Colors.black),
+                  ))
             ],
           );
-        }
-    );
+        });
   }
 
-  Future<void> showUserAddressDialogAlert(BuildContext context, String address){
-    addressTextEditingController.text=address;
+  Future<void> showUserAddressDialogAlert(
+      BuildContext context, String address) {
+    addressTextEditingController.text = address;
     return showDialog(
         context: context,
-        builder: (context){
+        builder: (context) {
           return AlertDialog(
-            title: Text("Update"),
+            title: const Text("Update"),
             content: SingleChildScrollView(
               child: Column(
                 children: [
@@ -121,13 +125,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             actions: [
               TextButton(
-                  onPressed: (){
+                  onPressed: () {
                     Navigator.pop(context);
                   },
-                  child: Text("Cancel", style: TextStyle(color: Colors.red),)
-              ),
+                  child: const Text(
+                    "Cancel",
+                    style: TextStyle(color: Colors.red),
+                  )),
               TextButton(
-                  onPressed: (){
+                  onPressed: () {
                     // userRef.child(firebaseAuth.currentUser!.uid).update({
                     //   "address":addressTextEditingController.text.trim(),
                     // }).then((value){
@@ -138,18 +144,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     // });
                     Navigator.pop(context);
                   },
-                  child: Text("OK", style: TextStyle(color: Colors.black),)
-              )
+                  child: const Text(
+                    "OK",
+                    style: TextStyle(color: Colors.black),
+                  ))
             ],
           );
-        }
-    );
+        });
   }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: (){
+      onTap: () {
         FocusScope.of(context).unfocus;
       },
       child: Scaffold(
@@ -157,16 +164,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           leading: IconButton(
-            onPressed: (){
+            onPressed: () {
               Navigator.pop(context);
             },
-            icon: Icon(
-                Icons.arrow_back_ios,
-                color: Colors.black
-            ),
+            icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
           ),
           elevation: 0,
-          title: Text(
+          title: const Text(
             "Profile Screen",
             style: TextStyle(
               color: Colors.black,
@@ -174,30 +178,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           centerTitle: true,
-
         ),
         body: Center(
           child: Padding(
-              padding: EdgeInsets.fromLTRB(20, 20, 20, 50),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 50),
             child: Column(
               children: [
                 Container(
-                  padding: EdgeInsets.all(50),
-                  decoration: BoxDecoration(
+                  padding: const EdgeInsets.all(50),
+                  decoration: const BoxDecoration(
                     color: Colors.lightBlue,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.person,
                     color: Colors.white,
                   ),
                 ),
-                SizedBox(height: 20,),
+                const SizedBox(
+                  height: 20,
+                ),
                 //Name Edit
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
+                    const Text(
                       "DAdddyyy", // change to userModelCurrentInfo!.name!
                       style: TextStyle(
                         fontSize: 18,
@@ -205,23 +210,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     IconButton(
-                        onPressed: (){
-                          showUserNameDialogAlert(context, "DAdddyy");//change to userModelCurrentInfo!.name!
+                        onPressed: () {
+                          showUserNameDialogAlert(context,
+                              "DAdddyy"); //change to userModelCurrentInfo!.name!
                         },
-                        icon: Icon(
-                          Icons.edit
-                        )
-                    ),
+                        icon: const Icon(Icons.edit)),
                   ],
                 ),
-                Divider(
+                const Divider(
                   thickness: 1,
                 ),
                 //Phone Edit
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
+                    const Text(
                       "9698769867", // change to userModelCurrentInfo!.phone!
                       style: TextStyle(
                         fontSize: 18,
@@ -229,23 +232,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     IconButton(
-                        onPressed: (){
-                          showUserPhoneDialogAlert(context, "9698769867");//change to userModelCurrentInfo!.phone!
+                        onPressed: () {
+                          showUserPhoneDialogAlert(context,
+                              "9698769867"); //change to userModelCurrentInfo!.phone!
                         },
-                        icon: Icon(
-                            Icons.edit
-                        )
-                    ),
+                        icon: const Icon(Icons.edit)),
                   ],
                 ),
-                Divider(
+                const Divider(
                   thickness: 1,
                 ),
                 //Address Edit
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
+                    const Text(
                       "Hall 2", // change to userModelCurrentInfo!.address!
                       style: TextStyle(
                         fontSize: 18,
@@ -253,20 +254,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     IconButton(
-                        onPressed: (){
-                          showUserAddressDialogAlert(context, "Hall 2");//change to userModelCurrentInfo!.address!
+                        onPressed: () {
+                          showUserAddressDialogAlert(context,
+                              "Hall 2"); //change to userModelCurrentInfo!.address!
                         },
-                        icon: Icon(
-                            Icons.edit
-                        )
-                    ),
+                        icon: const Icon(Icons.edit)),
                   ],
                 ),
-                Divider(
+                const Divider(
                   thickness: 1,
                 ),
                 //Email
-                Row(
+                const Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
@@ -283,7 +282,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ),
-
     );
   }
 }

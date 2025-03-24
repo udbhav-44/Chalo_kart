@@ -3,17 +3,13 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:chalokart/Assistance/request_assistant.dart';
-import 'package:chalokart/global/global.dart';
 import 'package:chalokart/models/direction.dart';
-import 'package:chalokart/models/direction_details_info.dart';
 import 'package:chalokart/models/direction_details_with_polyline.dart';
 // import 'package:chalokart/models/user_model.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import '../global/map_key.dart';
 import '../infoHandler/app_info.dart';
 
-class AssistantMethods{
+class AssistantMethods {
   // static void readCurrentOnlineUserInfo() async{
   //   currentUser=firebaseAuth.currentUser;
   //   DatabaseReference userRef= FirebaseDatabase.instance
@@ -27,25 +23,30 @@ class AssistantMethods{
   //   });
   // }
 
-  static Future<String> searchAddressForGeoCoordinates(Position position, context) async{
-    String apiUrl="https://maps.googleapis.com/maps/api/geocode/json?latlng=${position.latitude},${position.longitude}&key=$mapKey";
-    String humanReadableAddress="";
-    var requestResponse= await RequestAssistant.receiveRequest(apiUrl);
+  static Future<String> searchAddressForGeoCoordinates(
+      Position position, context) async {
+    String apiUrl =
+        "https://maps.googleapis.com/maps/api/geocode/json?latlng=${position.latitude},${position.longitude}&key=$mapKey";
+    String humanReadableAddress = "";
+    var requestResponse = await RequestAssistant.receiveRequest(apiUrl);
 
-    if(requestResponse!="Error occurred, no response"){
-      humanReadableAddress=requestResponse["results"][0]["formatted_address"];
+    if (requestResponse != "Error occurred, no response") {
+      humanReadableAddress = requestResponse["results"][0]["formatted_address"];
 
-      Directions userPickupAddress=Directions();
-      userPickupAddress.locationLatitude=position.latitude;
-      userPickupAddress.locationLongitude=position.longitude;
-      userPickupAddress.locationName=humanReadableAddress;
+      Directions userPickupAddress = Directions();
+      userPickupAddress.locationLatitude = position.latitude;
+      userPickupAddress.locationLongitude = position.longitude;
+      userPickupAddress.locationName = humanReadableAddress;
 
-      Provider.of<AppInfo>(context, listen: false).updatePickupLocationAddress(userPickupAddress);
+      Provider.of<AppInfo>(context, listen: false)
+          .updatePickupLocationAddress(userPickupAddress);
     }
     return humanReadableAddress;
   }
 
-  static Future<(DirectionDetailsWithPolyline,dynamic)> obtainOriginToDestinationDirectionDetails(LatLng originPosition, LatLng destinationPosition) async{
+  static Future<(DirectionDetailsWithPolyline, dynamic)>
+      obtainOriginToDestinationDirectionDetails(
+          LatLng originPosition, LatLng destinationPosition) async {
     // String urlOriginToDestinationDirection="https://maps.googleapis.com/maps/api/directions/json?origin=${originPosition.latitude},${originPosition.longitude}&destination=${destinationPosition.latitude},${destinationPosition.longitude}&key=$mapKey";
     // var responseDirectionApi=await RequestAssistant.receiveRequest(urlOriginToDestinationDirection);
     //
@@ -158,24 +159,32 @@ class AssistantMethods{
     //   return null;
     //   // Handle exceptions
     // }
-    DirectionDetailsWithPolyline directionDetailsWithPolyline=DirectionDetailsWithPolyline();
+    DirectionDetailsWithPolyline directionDetailsWithPolyline =
+        DirectionDetailsWithPolyline();
     // print("Function called");
-    var responseDirectionApi=await RequestAssistant.receiveRequestForDirectionDetails(originPosition, destinationPosition);
+    var responseDirectionApi =
+        await RequestAssistant.receiveRequestForDirectionDetails(
+            originPosition, destinationPosition);
     DirectionDetailsWithPolyline nullInstance = DirectionDetailsWithPolyline(
       e_points: null,
       distance_value_in_meters: null,
       duration_text_in_s: null,
     );
     // print(responseDirectionApi);
-    if(responseDirectionApi=="Error occurred, no response"){
+    if (responseDirectionApi == "Error occurred, no response") {
       return (nullInstance, "");
     }
-    directionDetailsWithPolyline.e_points=responseDirectionApi["routes"][0]["polyline"]["encodedPolyline"];
-    directionDetailsWithPolyline.distance_value_in_meters=responseDirectionApi["routes"][0]["distanceMeters"];
-    directionDetailsWithPolyline.duration_text_in_s=responseDirectionApi["routes"][0]["duration"];
+    directionDetailsWithPolyline.e_points =
+        responseDirectionApi["routes"][0]["polyline"]["encodedPolyline"];
+    directionDetailsWithPolyline.distance_value_in_meters =
+        responseDirectionApi["routes"][0]["distanceMeters"];
+    directionDetailsWithPolyline.duration_text_in_s =
+        responseDirectionApi["routes"][0]["duration"];
     // print("asdf");
     // print(responseDirectionApi["routes"][0]["polyline"]["encodedPolyline"]);
-    return (directionDetailsWithPolyline,responseDirectionApi["routes"][0]["polyline"]["encodedPolyline"]);
+    return (
+      directionDetailsWithPolyline,
+      responseDirectionApi["routes"][0]["polyline"]["encodedPolyline"]
+    );
   }
 }
-
