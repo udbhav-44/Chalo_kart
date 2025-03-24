@@ -10,9 +10,9 @@
         android:icon="@mipmap/ic_launcher">
         
         <!-- Mapbox Access Token -->
-        <meta-data
+        <!-- <meta-data
             android:name="com.mapbox.token"
-            android:value="${MAPBOX_ACCESS_TOKEN}" />
+            android:value="${MAPBOX_ACCESS_TOKEN}" /> -->
             
         <activity
             android:name=".MainActivity"

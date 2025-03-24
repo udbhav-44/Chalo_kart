@@ -1,0 +1,2 @@
+/Users/trijalsrivastava/Code/Chalo_kart/chalo_cart_flutter/android/app/.cxx/Debug/1l2i1c5y/x86/CMakeFiles/edit_cache.dir
+/Users/trijalsrivastava/Code/Chalo_kart/chalo_cart_flutter/android/app/.cxx/Debug/1l2i1c5y/x86/CMakeFiles/rebuild_cache.dir

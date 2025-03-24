@@ -18,7 +18,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
   Future<void> _handleAddFunds() async {
     if (_formKey.currentState!.validate()) {
       final amount = double.parse(fundController.text);
-      final paymentProvider = Provider.of<PaymentProvider>(context, listen: false);
+      final paymentProvider =
+          Provider.of<PaymentProvider>(context, listen: false);
       await paymentProvider.addFunds(amount);
       if (mounted && paymentProvider.error == null) {
         fundController.clear();
@@ -62,7 +63,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('Error: ${paymentProvider.error}', style: const TextStyle(color: Colors.red)),
+                    Text('Error: ${paymentProvider.error}',
+                        style: const TextStyle(color: Colors.red)),
                     ElevatedButton(
                       onPressed: () => paymentProvider.fetchWalletBalance(),
                       child: const Text('Retry'),
@@ -89,15 +91,19 @@ class _PaymentScreenState extends State<PaymentScreen> {
                             children: [
                               const Text(
                                 'Current Balance',
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.w500),
                               ),
                               const SizedBox(height: 8),
                               Text(
                                 '\$${paymentProvider.walletBalance.toStringAsFixed(2)}',
-                                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineMedium
+                                    ?.copyWith(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                               ),
                             ],
                           ),
@@ -111,7 +117,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                           prefixIcon: Icon(Icons.attach_money),
                           border: OutlineInputBorder(),
                         ),
-                        keyboardType: TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter an amount';
@@ -132,13 +139,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       const SizedBox(height: 16),
                       AppButton(
                         text: 'Add Funds',
-                        onPressed: paymentProvider.isProcessing ? () {} : _handleAddFunds,
+                        onPressed: paymentProvider.isProcessing
+                            ? () {}
+                            : _handleAddFunds,
                         isLoading: paymentProvider.isProcessing,
                       ),
                       const SizedBox(height: 32),
                       const Text(
                         'Transaction History',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 16),
                       if (paymentProvider.transactions.isEmpty)
@@ -147,33 +157,41 @@ class _PaymentScreenState extends State<PaymentScreen> {
                             padding: EdgeInsets.symmetric(vertical: 32.0),
                             child: Text(
                               'No transactions yet',
-                              style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
+                              style: TextStyle(
+                                  color: AppColors.textSecondary, fontSize: 16),
                             ),
                           ),
                         )
                       else
-                        ...paymentProvider.transactions.map((transaction) => Card(
-                              margin: const EdgeInsets.only(bottom: 8),
-                              child: ListTile(
-                                leading: Icon(
-                                  transaction['type'] == 'Add'
-                                      ? Icons.add_circle_outline
-                                      : Icons.remove_circle_outline,
-                                  color: transaction['type'] == 'Add' ? Colors.green : Colors.red,
-                                ),
-                                title: Text(
-                                  transaction['type'] == 'Add' ? 'Added Funds' : 'Payment for Trip',
-                                ),
-                                subtitle: Text(transaction['date'] ?? ''),
-                                trailing: Text(
-                                  '${transaction['type'] == 'Add' ? '+' : '-'}\$${(transaction['amount'] as num).toStringAsFixed(2)}',
-                                  style: TextStyle(
-                                    color: transaction['type'] == 'Add' ? Colors.green : Colors.red,
-                                    fontWeight: FontWeight.bold,
+                        ...paymentProvider.transactions
+                            .map((transaction) => Card(
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  child: ListTile(
+                                    leading: Icon(
+                                      transaction['type'] == 'Add'
+                                          ? Icons.add_circle_outline
+                                          : Icons.remove_circle_outline,
+                                      color: transaction['type'] == 'Add'
+                                          ? Colors.green
+                                          : Colors.red,
+                                    ),
+                                    title: Text(
+                                      transaction['type'] == 'Add'
+                                          ? 'Added Funds'
+                                          : 'Payment for Trip',
+                                    ),
+                                    subtitle: Text(transaction['date'] ?? ''),
+                                    trailing: Text(
+                                      '${transaction['type'] == 'Add' ? '+' : '-'}\$${(transaction['amount'] as num).toStringAsFixed(2)}',
+                                      style: TextStyle(
+                                        color: transaction['type'] == 'Add'
+                                            ? Colors.green
+                                            : Colors.red,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ),
-                            )).toList(),
+                                )),
                     ],
                   ),
                 ),

@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart';
-
 /// This patch adds the missing hashValues function that was removed in newer Flutter versions
 /// but is still used by the mapbox_gl package.
 class MapboxGlPatch {
