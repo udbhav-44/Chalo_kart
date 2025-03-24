@@ -527,7 +527,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               if (!mounted) return;
 
               navigator.pushAndRemoveUntil(
-                MaterialPageRoute(builder: (context) => const HomeScreen()),
+                MaterialPageRoute(builder: (context) => const SignInScreen()),
                 (route) => false,
               );
             } else {

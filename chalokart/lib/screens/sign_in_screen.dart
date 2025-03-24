@@ -1,3 +1,4 @@
+import 'package:chalokart/screens/main_screen.dart';
 import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
 import '../services/auth_service.dart';
@@ -55,7 +56,7 @@ class _SignInScreenState extends State<SignInScreen> {
         if (!mounted) return;
 
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          MaterialPageRoute(builder: (context) => const MainScreen()),
           (route) => false,
         );
       } else {
