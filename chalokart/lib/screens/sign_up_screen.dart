@@ -7,7 +7,6 @@ import '../utils/message_utils.dart';
 import 'sign_in_screen.dart';
 import 'dart:async';
 import '../services/storage_service.dart';
-import '../screens/home_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({Key? key}) : super(key: key);
@@ -101,7 +100,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (!RegExp(r'^[6-9]\d{9}$').hasMatch(mobileNumber)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please enter a valid 10-digit mobile number starting with 6-9'),
+          content: Text(
+              'Please enter a valid 10-digit mobile number starting with 6-9'),
           backgroundColor: Colors.red,
         ),
       );
@@ -132,7 +132,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           _showMobileOtpStep = true;
         });
         _startMobileResendTimer();
-        
+
         Timer(const Duration(minutes: 5), () {
           if (mounted && !_isMobileVerified) {
             setState(() {
@@ -140,7 +140,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
               _showMobileOtpStep = false;
             });
             scaffoldContext.showSnackBar(const SnackBar(
-              content: Text('Mobile OTP has expired. Please request a new one.'),
+              content:
+                  Text('Mobile OTP has expired. Please request a new one.'),
               backgroundColor: Colors.red,
             ));
           }
@@ -165,7 +166,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<void> _verifyMobileOtp() async {
-    if (!_showMobileOtpStep || _isVerifying || _mobileOtpController.text.length != 6) {
+    if (!_showMobileOtpStep ||
+        _isVerifying ||
+        _mobileOtpController.text.length != 6) {
       return;
     }
 
@@ -262,7 +265,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final scaffoldContext = ScaffoldMessenger.of(context);
 
     try {
-      final result = await _authService.resendVerification(_emailController.text);
+      final result =
+          await _authService.resendVerification(_emailController.text);
 
       if (!mounted) return;
 
@@ -296,7 +300,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   void _handleSignUp() async {
     if (_formKey.currentState!.validate()) {
       final scaffoldContext = ScaffoldMessenger.of(context);
-      
+
       if (!_isMobileVerified) {
         scaffoldContext.showSnackBar(const SnackBar(
           content: Text('Please verify your mobile number first'),
@@ -320,7 +324,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
       final navigator = Navigator.of(context);
 
       // First, send email verification OTP
-      final sendOtpResult = await _authService.sendEmailVerification(_emailController.text);
+      final sendOtpResult =
+          await _authService.sendEmailVerification(_emailController.text);
 
       if (!mounted) return;
 
@@ -371,7 +376,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: AppColors.primaryColor),
+                          borderSide:
+                              const BorderSide(color: AppColors.primaryColor),
                         ),
                       ),
                       onChanged: (value) {
@@ -383,44 +389,50 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       width: double.infinity,
                       height: 45,
                       child: ElevatedButton(
-                        onPressed: _isVerifyingEmail || _emailOtpController.text.length != 6 ? null : () async {
-                          setDialogState(() => _isVerifyingEmail = true);
-                          final navigator = Navigator.of(context);
-                          final dialogContext = context;
-                          
-                          try {
-                            final verifyResult = await _authService.verifyEmail(
-                              _emailController.text,
-                              _emailOtpController.text,
-                            );
-                            
-                            if (!mounted) return;
-                            
-                            if (verifyResult['success']) {
-                              navigator.pop(verifyResult);
-                            } else {
-                              if (verifyResult['expired'] == true) {
-                                showMessage(
-                                  dialogContext,
-                                  'OTP has expired. Please request a new one.',
-                                  isError: true,
-                                );
-                                navigator.pop(verifyResult);
-                                _resendEmailVerification();
-                              } else {
-                                showMessage(
-                                  dialogContext,
-                                  verifyResult['message'] ?? 'Failed to verify email',
-                                  isError: true,
-                                );
-                              }
-                            }
-                          } finally {
-                            if (mounted) {
-                              setDialogState(() => _isVerifyingEmail = false);
-                            }
-                          }
-                        },
+                        onPressed: _isVerifyingEmail ||
+                                _emailOtpController.text.length != 6
+                            ? null
+                            : () async {
+                                setDialogState(() => _isVerifyingEmail = true);
+                                final navigator = Navigator.of(context);
+                                final dialogContext = context;
+
+                                try {
+                                  final verifyResult =
+                                      await _authService.verifyEmail(
+                                    _emailController.text,
+                                    _emailOtpController.text,
+                                  );
+
+                                  if (!mounted) return;
+
+                                  if (verifyResult['success']) {
+                                    navigator.pop(verifyResult);
+                                  } else {
+                                    if (verifyResult['expired'] == true) {
+                                      showMessage(
+                                        dialogContext,
+                                        'OTP has expired. Please request a new one.',
+                                        isError: true,
+                                      );
+                                      navigator.pop(verifyResult);
+                                      _resendEmailVerification();
+                                    } else {
+                                      showMessage(
+                                        dialogContext,
+                                        verifyResult['message'] ??
+                                            'Failed to verify email',
+                                        isError: true,
+                                      );
+                                    }
+                                  }
+                                } finally {
+                                  if (mounted) {
+                                    setDialogState(
+                                        () => _isVerifyingEmail = false);
+                                  }
+                                }
+                              },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primaryColor,
                           shape: RoundedRectangleBorder(
@@ -452,13 +464,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                     if (_emailResendCountdown == 0)
                       TextButton(
-                        onPressed: _isResendingEmailOtp ? null : () async {
-                          final dialogContext = context;
-                          await _resendEmailVerification();
-                          if (dialogContext.mounted) {
-                            setDialogState(() {});
-                          }
-                        },
+                        onPressed: _isResendingEmailOtp
+                            ? null
+                            : () async {
+                                final dialogContext = context;
+                                await _resendEmailVerification();
+                                if (dialogContext.mounted) {
+                                  setDialogState(() {});
+                                }
+                              },
                         child: Text(
                           _isResendingEmailOtp ? 'Resending...' : 'Resend OTP',
                           style: const TextStyle(
@@ -503,9 +517,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
           if (!mounted) return;
 
           if (result['success']) {
-            scaffoldContext.showSnackBar(
-            const SnackBar(backgroundColor: Colors.green,content:
-             Text('Account created successfully')));
+            scaffoldContext.showSnackBar(const SnackBar(
+                backgroundColor: Colors.green,
+                content: Text('Account created successfully')));
             // Automatically sign in the user
             final signInResult = await _authService.signIn(
               _emailController.text,
@@ -542,15 +556,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
               backgroundColor: Colors.red,
             ));
           }
-        } else if (verificationResult != null && !verificationResult['cancelled']) {
+        } else if (verificationResult != null &&
+            !verificationResult['cancelled']) {
           scaffoldContext.showSnackBar(SnackBar(
-            content: Text(verificationResult['message'] ?? 'Failed to verify email'),
+            content:
+                Text(verificationResult['message'] ?? 'Failed to verify email'),
             backgroundColor: Colors.red,
           ));
         }
       } else {
         scaffoldContext.showSnackBar(SnackBar(
-          content: Text(sendOtpResult['message'] ?? 'Failed to send verification email'),
+          content: Text(
+              sendOtpResult['message'] ?? 'Failed to send verification email'),
           backgroundColor: Colors.red,
         ));
       }
@@ -630,7 +647,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: AppColors.primaryColor),
+                              borderSide: const BorderSide(
+                                  color: AppColors.primaryColor),
                             ),
                           ),
                           validator: (value) {
@@ -659,25 +677,30 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                     fontWeight: FontWeight.w600,
                                     fontSize: 15,
                                   ),
-                                  floatingLabelBehavior: FloatingLabelBehavior.never,
+                                  floatingLabelBehavior:
+                                      FloatingLabelBehavior.never,
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(color: Colors.grey[400]!),
+                                    borderSide:
+                                        BorderSide(color: Colors.grey[400]!),
                                   ),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(color: Colors.grey[400]!),
+                                    borderSide:
+                                        BorderSide(color: Colors.grey[400]!),
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(color: AppColors.primaryColor),
+                                    borderSide: const BorderSide(
+                                        color: AppColors.primaryColor),
                                   ),
                                 ),
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
                                     return 'Please enter your mobile number';
                                   }
-                                  if (!RegExp(r'^[6-9]\d{9}$').hasMatch(value)) {
+                                  if (!RegExp(r'^[6-9]\d{9}$')
+                                      .hasMatch(value)) {
                                     return 'Enter valid number starting with 6-9';
                                   }
                                   return null;
@@ -687,10 +710,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             const SizedBox(width: 8),
                             AnimatedSwitcher(
                               duration: const Duration(milliseconds: 400),
-                              reverseDuration: const Duration(milliseconds: 200),
+                              reverseDuration:
+                                  const Duration(milliseconds: 200),
                               switchInCurve: Curves.easeOutCubic,
                               switchOutCurve: Curves.easeInCubic,
-                              transitionBuilder: (Widget child, Animation<double> animation) {
+                              transitionBuilder:
+                                  (Widget child, Animation<double> animation) {
                                 return FadeTransition(
                                   opacity: CurvedAnimation(
                                     parent: animation,
@@ -703,35 +728,42 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 );
                               },
                               child: !_otpSent
-                                ? ElevatedButton(
-                                    key: const ValueKey('send_otp'),
-                                    onPressed: _isSendingOtp ? null : _sendMobileOtp,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.primaryColor,
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                  ? ElevatedButton(
+                                      key: const ValueKey('send_otp'),
+                                      onPressed:
+                                          _isSendingOtp ? null : _sendMobileOtp,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.primaryColor,
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 16, vertical: 16),
+                                      ),
+                                      child: Text(_isSendingOtp
+                                          ? 'Sending...'
+                                          : 'Send OTP'),
+                                    )
+                                  : Container(
+                                      key: const ValueKey('otp_sent'),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.green.withAlpha(25),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(color: Colors.green),
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.check_circle,
+                                              color: Colors.green, size: 16),
+                                          SizedBox(width: 4),
+                                          Text(
+                                            'OTP Sent',
+                                            style:
+                                                TextStyle(color: Colors.green),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                    child: Text(_isSendingOtp ? 'Sending...' : 'Send OTP'),
-                                  )
-                                : Container(
-                                    key: const ValueKey('otp_sent'),
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.green.withAlpha(25),
-                                      borderRadius: BorderRadius.circular(4),
-                                      border: Border.all(color: Colors.green),
-                                    ),
-                                    child: const Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(Icons.check_circle, color: Colors.green, size: 16),
-                                        SizedBox(width: 4),
-                                        Text(
-                                          'OTP Sent',
-                                          style: TextStyle(color: Colors.green),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
                             ),
                           ],
                         ),
@@ -740,100 +772,131 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           reverseDuration: const Duration(milliseconds: 200),
                           curve: Curves.easeInOutCubic,
                           alignment: Alignment.topCenter,
-                          child: _showMobileOtpStep ? Column(
-                            children: [
-                              const SizedBox(height: 16),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: TextFormField(
-                                      controller: _mobileOtpController,
-                                      keyboardType: TextInputType.number,
-                                      maxLength: 6,
-                                      enabled: _otpSent && !_isMobileVerified && !_isVerifying,
-                                      style: const TextStyle(
-                                        fontFamily: 'AlbertSans',
-                                        fontSize: 15,
+                          child: _showMobileOtpStep
+                              ? Column(
+                                  children: [
+                                    const SizedBox(height: 16),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: TextFormField(
+                                            controller: _mobileOtpController,
+                                            keyboardType: TextInputType.number,
+                                            maxLength: 6,
+                                            enabled: _otpSent &&
+                                                !_isMobileVerified &&
+                                                !_isVerifying,
+                                            style: const TextStyle(
+                                              fontFamily: 'AlbertSans',
+                                              fontSize: 15,
+                                            ),
+                                            decoration: InputDecoration(
+                                              labelText: 'Enter OTP',
+                                              labelStyle: const TextStyle(
+                                                fontFamily: 'AlbertSans',
+                                                color: Color.fromARGB(
+                                                    255, 105, 101, 101),
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 15,
+                                              ),
+                                              counterText: '',
+                                              floatingLabelBehavior:
+                                                  FloatingLabelBehavior.never,
+                                              border: OutlineInputBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                                borderSide: BorderSide(
+                                                    color: Colors.grey[400]!),
+                                              ),
+                                              enabledBorder: OutlineInputBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                                borderSide: BorderSide(
+                                                    color: Colors.grey[400]!),
+                                              ),
+                                              focusedBorder: OutlineInputBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                                borderSide: const BorderSide(
+                                                    color:
+                                                        AppColors.primaryColor),
+                                              ),
+                                              suffixIcon: _isMobileVerified
+                                                  ? const Icon(
+                                                      Icons.check_circle,
+                                                      color: Colors.green,
+                                                    )
+                                                  : null,
+                                            ),
+                                            validator: (value) {
+                                              if (_showMobileOtpStep &&
+                                                  !_isMobileVerified) {
+                                                if (value == null ||
+                                                    value.isEmpty) {
+                                                  return 'Please enter the OTP';
+                                                }
+                                                if (value.length != 6) {
+                                                  return 'Please enter a valid 6-digit OTP';
+                                                }
+                                              }
+                                              return null;
+                                            },
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        if (!_isMobileVerified)
+                                          ElevatedButton(
+                                            onPressed: (_otpSent &&
+                                                    !_isVerifying &&
+                                                    _mobileOtpController
+                                                            .text.length ==
+                                                        6)
+                                                ? _verifyMobileOtp
+                                                : null,
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor:
+                                                  AppColors.primaryColor,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 16,
+                                                      vertical: 16),
+                                            ),
+                                            child: Text(_isVerifying
+                                                ? 'Verifying...'
+                                                : 'Verify OTP'),
+                                          ),
+                                      ],
+                                    ),
+                                    if (!_isMobileVerified &&
+                                        _mobileResendCountdown > 0)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 8),
+                                        child: Text(
+                                          'Resend OTP in $_mobileResendCountdown seconds',
+                                          style: const TextStyle(
+                                            color: Colors.grey,
+                                            fontFamily: 'AlbertSans',
+                                          ),
+                                        ),
                                       ),
-                                      decoration: InputDecoration(
-                                        labelText: 'Enter OTP',
-                                        labelStyle: const TextStyle(
-                                          fontFamily: 'AlbertSans',
-                                          color: Color.fromARGB(255, 105, 101, 101),
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 15,
+                                    if (!_isMobileVerified &&
+                                        _mobileResendCountdown == 0)
+                                      TextButton(
+                                        onPressed: _isResendingOtp
+                                            ? null
+                                            : _resendMobileOtp,
+                                        child: Text(
+                                          _isResendingOtp
+                                              ? 'Resending...'
+                                              : 'Resend OTP',
+                                          style: const TextStyle(
+                                            fontFamily: 'AlbertSans',
+                                          ),
                                         ),
-                                        counterText: '',
-                                        floatingLabelBehavior: FloatingLabelBehavior.never,
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(8),
-                                          borderSide: BorderSide(color: Colors.grey[400]!),
-                                        ),
-                                        enabledBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(8),
-                                          borderSide: BorderSide(color: Colors.grey[400]!),
-                                        ),
-                                        focusedBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(8),
-                                          borderSide: const BorderSide(color: AppColors.primaryColor),
-                                        ),
-                                        suffixIcon: _isMobileVerified
-                                            ? const Icon(
-                                                Icons.check_circle,
-                                                color: Colors.green,
-                                              )
-                                            : null,
                                       ),
-                                      validator: (value) {
-                                        if (_showMobileOtpStep && !_isMobileVerified) {
-                                          if (value == null || value.isEmpty) {
-                                            return 'Please enter the OTP';
-                                          }
-                                          if (value.length != 6) {
-                                            return 'Please enter a valid 6-digit OTP';
-                                          }
-                                        }
-                                        return null;
-                                      },
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  if (!_isMobileVerified)
-                                    ElevatedButton(
-                                      onPressed: (_otpSent && !_isVerifying && _mobileOtpController.text.length == 6) 
-                                          ? _verifyMobileOtp 
-                                          : null,
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppColors.primaryColor,
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                                      ),
-                                      child: Text(_isVerifying ? 'Verifying...' : 'Verify OTP'),
-                                    ),
-                                ],
-                              ),
-                              if (!_isMobileVerified && _mobileResendCountdown > 0)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 8),
-                                  child: Text(
-                                    'Resend OTP in $_mobileResendCountdown seconds',
-                                    style: const TextStyle(
-                                      color: Colors.grey,
-                                      fontFamily: 'AlbertSans',
-                                    ),
-                                  ),
-                                ),
-                              if (!_isMobileVerified && _mobileResendCountdown == 0)
-                                TextButton(
-                                  onPressed: _isResendingOtp ? null : _resendMobileOtp,
-                                  child: Text(
-                                    _isResendingOtp ? 'Resending...' : 'Resend OTP',
-                                    style: const TextStyle(
-                                      fontFamily: 'AlbertSans',
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ) : Container(),
+                                  ],
+                                )
+                              : Container(),
                         ),
                         const SizedBox(height: 16),
                         TextFormField(
@@ -862,7 +925,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: AppColors.primaryColor),
+                              borderSide: const BorderSide(
+                                  color: AppColors.primaryColor),
                             ),
                           ),
                           validator: (value) {
@@ -902,11 +966,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: AppColors.primaryColor),
+                              borderSide: const BorderSide(
+                                  color: AppColors.primaryColor),
                             ),
                             suffixIcon: IconButton(
                               icon: Icon(
-                                _showPassword ? Icons.visibility_off : Icons.visibility,
+                                _showPassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
                                 color: Colors.grey[600],
                               ),
                               onPressed: () {
@@ -953,11 +1020,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: AppColors.primaryColor),
+                              borderSide: const BorderSide(
+                                  color: AppColors.primaryColor),
                             ),
                             suffixIcon: IconButton(
                               icon: Icon(
-                                _showConfirmPassword ? Icons.visibility_off : Icons.visibility,
+                                _showConfirmPassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
                                 color: Colors.grey[600],
                               ),
                               onPressed: () {
@@ -993,7 +1063,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                     width: 20,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          Colors.white),
                                     ),
                                   )
                                 : const Text(
@@ -1029,12 +1100,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         Navigator.pushReplacement(
                           context,
                           PageRouteBuilder(
-                            pageBuilder: (context, animation, secondaryAnimation) => const SignInScreen(),
-                            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                            pageBuilder:
+                                (context, animation, secondaryAnimation) =>
+                                    const SignInScreen(),
+                            transitionsBuilder: (context, animation,
+                                secondaryAnimation, child) {
                               const begin = Offset(-1.0, 0.0);
                               const end = Offset.zero;
                               const curve = Curves.easeInOutCubic;
-                              var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                              var tween = Tween(begin: begin, end: end)
+                                  .chain(CurveTween(curve: curve));
                               var offsetAnimation = animation.drive(tween);
                               return SlideTransition(
                                 position: offsetAnimation,
@@ -1046,8 +1121,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 ),
                               );
                             },
-                            transitionDuration: const Duration(milliseconds: 400),
-                            reverseTransitionDuration: const Duration(milliseconds: 400),
+                            transitionDuration:
+                                const Duration(milliseconds: 400),
+                            reverseTransitionDuration:
+                                const Duration(milliseconds: 400),
                           ),
                         );
                       },
@@ -1076,4 +1153,4 @@ class _SignUpScreenState extends State<SignUpScreen> {
       ),
     );
   }
-} 
+}

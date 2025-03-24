@@ -1,20 +1,17 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
-import 'package:geocoder2/geocoder2.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart' as loc;
 import 'package:provider/provider.dart';
 import 'package:chalokart/global/global.dart';
-import 'package:chalokart/global/map_key.dart';
 import 'package:chalokart/infoHandler/app_info.dart';
 import 'package:chalokart/screens/drawer_screen.dart';
 import 'package:chalokart/screens/precise_pickup_screen.dart';
 import 'package:chalokart/screens/search_places_screen.dart';
 
 import '../Assistance/assistance_methods.dart';
-import '../models/direction.dart';
 import '../widgets/progress_dialog.dart';
 
 class MainScreen extends StatefulWidget {
@@ -25,9 +22,8 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-
   LatLng? pickLocation;
-  loc.Location location=loc.Location();
+  loc.Location location = loc.Location();
   // String? _address;
   final Completer<GoogleMapController> _controllerGoogleMap = Completer();
   GoogleMapController? newGoogleMapController;
@@ -36,85 +32,94 @@ class _MainScreenState extends State<MainScreen> {
     zoom: 14.4746,
   );
 
+  final GlobalKey<ScaffoldState> _scaffoldState = GlobalKey<ScaffoldState>();
 
-  final GlobalKey<ScaffoldState> _scaffoldState=GlobalKey<ScaffoldState>();
-
-  double searchLocationContainer=220;
-  double waitingResponseFromDriverContainerHeight=0;
+  double searchLocationContainer = 220;
+  double waitingResponseFromDriverContainerHeight = 0;
 
   Position? userCurrentPosition;
 
-  var geoLocation=Geolocator();
+  var geoLocation = Geolocator();
 
   LocationPermission? _locationPermission;
-  double bottomPaddingOfMap=0;
+  double bottomPaddingOfMap = 0;
 
-  List<LatLng> pLineCoordinatesList=[];
+  List<LatLng> pLineCoordinatesList = [];
 
-  Set<Polyline> polylineSet={};
+  Set<Polyline> polylineSet = {};
 
-  Set<Marker> markerSet={};
+  Set<Marker> markerSet = {};
 
-  Set<Circle> circleSet={};
+  Set<Circle> circleSet = {};
 
-  String userName="";
-  String userEmail="";
+  String userName = "";
+  String userEmail = "";
 
-  bool openNavigationDrawer=true;
+  bool openNavigationDrawer = true;
 
-  bool activeNearbyDriverKeysLoaded=false;
+  bool activeNearbyDriverKeysLoaded = false;
 
   BitmapDescriptor? activeNearbyIcon;
 
+  locateUserPosition() async {
+    Position cPosition = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+    userCurrentPosition = cPosition;
 
-  locateUserPosition() async{
-    Position cPosition= await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-    userCurrentPosition=cPosition;
+    LatLng latLngPosition =
+        LatLng(userCurrentPosition!.latitude, userCurrentPosition!.longitude);
+    CameraPosition cameraPosition =
+        CameraPosition(target: latLngPosition, zoom: 15);
 
-    LatLng latLngPosition = LatLng(userCurrentPosition!.latitude, userCurrentPosition!.longitude);
-    CameraPosition cameraPosition=CameraPosition(target: latLngPosition, zoom: 15);
+    newGoogleMapController!
+        .animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
 
-    newGoogleMapController!.animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
-
-    String humanReadableAddress=await AssistantMethods.searchAddressForGeoCoordinates(userCurrentPosition!, context);
+    String humanReadableAddress =
+        await AssistantMethods.searchAddressForGeoCoordinates(
+            userCurrentPosition!, context);
     print("this is your address$humanReadableAddress");
-
 
     // initializeGeoFireListener();
     //
     // AssistantMethods.readTripsKeysForOnlineUser(context);
-
   }
 
+  Future<void> drawPolylineFromOriginToDestination(bool darkTheme) async {
+    var originPosition =
+        Provider.of<AppInfo>(context, listen: false).userPickupLocation;
+    var destinationPosition =
+        Provider.of<AppInfo>(context, listen: false).userDropOffLocation;
 
-  Future<void> drawPolylineFromOriginToDestination(bool darkTheme) async{
-    var originPosition=Provider.of<AppInfo>(context, listen: false).userPickupLocation;
-    var destinationPosition=Provider.of<AppInfo>(context, listen: false).userDropOffLocation;
+    var originLatLng = LatLng(
+        originPosition!.locationLatitude!, originPosition.locationLongitude!);
+    var destinationLatLng = LatLng(destinationPosition!.locationLatitude!,
+        destinationPosition.locationLongitude!);
 
-    var originLatLng = LatLng(originPosition!.locationLatitude!,originPosition.locationLongitude!);
-    var destinationLatLng = LatLng(destinationPosition!.locationLatitude!,destinationPosition.locationLongitude!);
-    
     showDialog(
-        context: context,
-        builder: (BuildContext context)=>ProgressDialog(message: "Please wait"),
+      context: context,
+      builder: (BuildContext context) => ProgressDialog(message: "Please wait"),
     );
 
-    var (directionDetailsWithPolyline, encodedPolylineString)=await AssistantMethods.obtainOriginToDestinationDirectionDetails(originLatLng, destinationLatLng);
+    var (directionDetailsWithPolyline, encodedPolylineString) =
+        await AssistantMethods.obtainOriginToDestinationDirectionDetails(
+            originLatLng, destinationLatLng);
 
     setState(() {
-      tripDirectionDetailsInfo=directionDetailsWithPolyline;
+      tripDirectionDetailsInfo = directionDetailsWithPolyline;
     });
 
     Navigator.pop(context);
 
-    PolylinePoints pPoints=PolylinePoints();
-    List<PointLatLng> decodePolyLinePointsResultList=pPoints.decodePolyline(encodedPolylineString);
+    PolylinePoints pPoints = PolylinePoints();
+    List<PointLatLng> decodePolyLinePointsResultList =
+        pPoints.decodePolyline(encodedPolylineString);
     // print(decodePolyLinePointsResultList);
     pLineCoordinatesList.clear();
 
-    if(decodePolyLinePointsResultList.isNotEmpty){
+    if (decodePolyLinePointsResultList.isNotEmpty) {
       for (var pointLatLng in decodePolyLinePointsResultList) {
-        pLineCoordinatesList.add(LatLng(pointLatLng.latitude, pointLatLng.longitude));
+        pLineCoordinatesList
+            .add(LatLng(pointLatLng.latitude, pointLatLng.longitude));
       }
     }
 
@@ -122,62 +127,62 @@ class _MainScreenState extends State<MainScreen> {
 
     setState(() {
       Polyline polyline = Polyline(
-        color: darkTheme? Colors.greenAccent:Colors.greenAccent,
-        polylineId: const PolylineId("PolylineID"),
-        jointType: JointType.round,
-        points: pLineCoordinatesList,
-        startCap: Cap.roundCap,
-        endCap: Cap.roundCap,
-        geodesic: true,
-        width: 8,
-        visible: true
-      );
+          color: darkTheme ? Colors.greenAccent : Colors.greenAccent,
+          polylineId: const PolylineId("PolylineID"),
+          jointType: JointType.round,
+          points: pLineCoordinatesList,
+          startCap: Cap.roundCap,
+          endCap: Cap.roundCap,
+          geodesic: true,
+          width: 8,
+          visible: true);
 
       polylineSet.add(polyline);
     });
     // print("Divyam");
     // print(pLineCoordinatesList);
     LatLngBounds boundsLatLng;
-    if(originLatLng.latitude>destinationLatLng.latitude&& originLatLng.longitude>destinationLatLng.longitude){
-      boundsLatLng=LatLngBounds(southwest: destinationLatLng, northeast: originLatLng);
-    }
-    else if(originLatLng.longitude>destinationLatLng.longitude){
-      boundsLatLng=LatLngBounds(
+    if (originLatLng.latitude > destinationLatLng.latitude &&
+        originLatLng.longitude > destinationLatLng.longitude) {
+      boundsLatLng =
+          LatLngBounds(southwest: destinationLatLng, northeast: originLatLng);
+    } else if (originLatLng.longitude > destinationLatLng.longitude) {
+      boundsLatLng = LatLngBounds(
           southwest: LatLng(originLatLng.latitude, destinationLatLng.longitude),
-          northeast: LatLng(destinationLatLng.latitude, originLatLng.longitude)
-      );
-    }
-    else if(originLatLng.latitude>destinationLatLng.latitude){
-      boundsLatLng=LatLngBounds(
+          northeast:
+              LatLng(destinationLatLng.latitude, originLatLng.longitude));
+    } else if (originLatLng.latitude > destinationLatLng.latitude) {
+      boundsLatLng = LatLngBounds(
           southwest: LatLng(destinationLatLng.latitude, originLatLng.longitude),
-          northeast: LatLng(originLatLng.latitude, destinationLatLng.longitude)
-      );
+          northeast:
+              LatLng(originLatLng.latitude, destinationLatLng.longitude));
+    } else {
+      boundsLatLng =
+          LatLngBounds(southwest: originLatLng, northeast: destinationLatLng);
     }
-    else{
-      boundsLatLng=LatLngBounds(southwest: originLatLng, northeast: destinationLatLng);
-    }
-    newGoogleMapController!.animateCamera(CameraUpdate.newLatLngBounds(boundsLatLng, 65));
+    newGoogleMapController!
+        .animateCamera(CameraUpdate.newLatLngBounds(boundsLatLng, 65));
 
-    Marker originMarker=Marker(
-      markerId: const MarkerId("originID"),
-      infoWindow: InfoWindow(title: originPosition.locationName, snippet: "Origin"),
-      position: originLatLng,
-      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen)
-    );
+    Marker originMarker = Marker(
+        markerId: const MarkerId("originID"),
+        infoWindow:
+            InfoWindow(title: originPosition.locationName, snippet: "Origin"),
+        position: originLatLng,
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen));
 
-    Marker destinationMarker=Marker(
+    Marker destinationMarker = Marker(
         markerId: const MarkerId("destinationID"),
-        infoWindow: InfoWindow(title: destinationPosition.locationName, snippet: "Destination"),
+        infoWindow: InfoWindow(
+            title: destinationPosition.locationName, snippet: "Destination"),
         position: destinationLatLng,
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed)
-    );
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed));
 
     setState(() {
       markerSet.add(originMarker);
       markerSet.add(destinationMarker);
     });
 
-    Circle originCircle=Circle(
+    Circle originCircle = Circle(
       circleId: const CircleId("originID"),
       fillColor: Colors.greenAccent,
       radius: 12,
@@ -185,7 +190,7 @@ class _MainScreenState extends State<MainScreen> {
       strokeColor: Colors.white,
       center: originLatLng,
     );
-    Circle destinationCircle=Circle(
+    Circle destinationCircle = Circle(
       circleId: const CircleId("destinationID"),
       fillColor: Colors.greenAccent,
       radius: 12,
@@ -199,7 +204,6 @@ class _MainScreenState extends State<MainScreen> {
       circleSet.add(destinationCircle);
     });
   }
-
 
   // getAddressesFromLatLng() async{
   //   try{
@@ -229,10 +233,9 @@ class _MainScreenState extends State<MainScreen> {
   checkLocationPermissionAllowed() async {
     _locationPermission = await Geolocator.requestPermission();
 
-    if(_locationPermission==LocationPermission.denied){
+    if (_locationPermission == LocationPermission.denied) {
       _locationPermission = await Geolocator.requestPermission();
     }
-
   }
 
   @override
@@ -245,9 +248,10 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    bool darkTheme=MediaQuery.of(context).platformBrightness==Brightness.dark;
+    bool darkTheme =
+        MediaQuery.of(context).platformBrightness == Brightness.dark;
     return GestureDetector(
-      onTap:(){
+      onTap: () {
         FocusScope.of(context).unfocus();
       },
       child: Scaffold(
@@ -257,19 +261,19 @@ class _MainScreenState extends State<MainScreen> {
           children: [
             GoogleMap(
               mapType: MapType.normal,
-              myLocationEnabled:true,
-              zoomGesturesEnabled:true,
-              zoomControlsEnabled:true,
+              myLocationEnabled: true,
+              zoomGesturesEnabled: true,
+              zoomControlsEnabled: true,
               initialCameraPosition: _kGooglePlex,
               polylines: polylineSet,
               markers: markerSet,
               circles: circleSet,
-              onMapCreated: (GoogleMapController controller){
+              onMapCreated: (GoogleMapController controller) {
                 _controllerGoogleMap.complete(controller);
-                newGoogleMapController=controller;
+                newGoogleMapController = controller;
 
                 setState(() {
-                  bottomPaddingOfMap=200;
+                  bottomPaddingOfMap = 200;
                 });
 
                 locateUserPosition();
@@ -285,7 +289,6 @@ class _MainScreenState extends State<MainScreen> {
               // onCameraIdle: (){
               //   getAddressesFromLatLng();
               // },
-
             ),
             // Align(
             //   alignment: Alignment.center,
@@ -317,16 +320,16 @@ class _MainScreenState extends State<MainScreen> {
               top: 50,
               left: 20,
               child: GestureDetector(
-                onTap: (){
+                onTap: () {
                   _scaffoldState.currentState!.openDrawer();
                 },
                 child: CircleAvatar(
-                  backgroundColor: darkTheme? Colors.greenAccent.shade400:Colors.white,
+                  backgroundColor:
+                      darkTheme ? Colors.greenAccent.shade400 : Colors.white,
                   child: Icon(
                     Icons.menu,
-                    color: darkTheme? Colors.greenAccent:Colors.greenAccent,
+                    color: darkTheme ? Colors.greenAccent : Colors.greenAccent,
                   ),
-
                 ),
               ),
             ),
@@ -344,90 +347,137 @@ class _MainScreenState extends State<MainScreen> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: darkTheme ? Colors.black: Colors.white,
+                        color: darkTheme ? Colors.black : Colors.white,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Column(
                         children: [
                           Container(
                             decoration: BoxDecoration(
-                              color: darkTheme ? Colors.grey.shade900: Colors.grey.shade100,
+                              color: darkTheme
+                                  ? Colors.grey.shade900
+                                  : Colors.grey.shade100,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Column(
                               children: [
                                 Padding(
-                                  padding: EdgeInsets.all(5),
+                                  padding: const EdgeInsets.all(5),
                                   child: Row(
                                     children: [
-                                      Icon(Icons.location_on_outlined, color: darkTheme? Colors.greenAccent.shade400:Colors.green,),
-                                      const SizedBox(width: 10,),
+                                      Icon(
+                                        Icons.location_on_outlined,
+                                        color: darkTheme
+                                            ? Colors.greenAccent.shade400
+                                            : Colors.green,
+                                      ),
+                                      const SizedBox(
+                                        width: 10,
+                                      ),
                                       Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
-                                          Text("From",
-                                            style: TextStyle(color: darkTheme? Colors.greenAccent.shade400:Colors.green,
-                                                fontSize: 16, fontWeight: FontWeight.bold
-                                            ),
+                                          Text(
+                                            "From",
+                                            style: TextStyle(
+                                                color: darkTheme
+                                                    ? Colors
+                                                        .greenAccent.shade400
+                                                    : Colors.green,
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold),
                                           ),
                                           Text(
-                                            Provider.of<AppInfo>(context).userPickupLocation!=null ?
-                                              '${Provider.of<AppInfo>(context).userPickupLocation!.locationName!.substring(0,30)}...'
-                                              : 'Add Pickup Location',
-                                            style: const TextStyle(color: Colors.grey, fontSize: 14),
+                                            Provider.of<AppInfo>(context)
+                                                        .userPickupLocation !=
+                                                    null
+                                                ? '${Provider.of<AppInfo>(context).userPickupLocation!.locationName!.substring(0, 30)}...'
+                                                : 'Add Pickup Location',
+                                            style: const TextStyle(
+                                                color: Colors.grey,
+                                                fontSize: 14),
                                           )
                                         ],
                                       )
-
                                     ],
                                   ),
                                 ),
-                                const SizedBox(height: 5,),
-
+                                const SizedBox(
+                                  height: 5,
+                                ),
                                 Divider(
                                   height: 1,
                                   thickness: 2,
-                                  color: darkTheme? Colors.greenAccent.shade400:Colors.greenAccent,
+                                  color: darkTheme
+                                      ? Colors.greenAccent.shade400
+                                      : Colors.greenAccent,
                                 ),
-
-                                SizedBox(height: 5,),
+                                const SizedBox(
+                                  height: 5,
+                                ),
                                 Padding(
-                                  padding: EdgeInsets.all(5),
+                                  padding: const EdgeInsets.all(5),
                                   child: GestureDetector(
-                                    onDoubleTap: () async{
+                                    onDoubleTap: () async {
                                       // go to search places screen
-                                      var responseFromSearchScreen= await Navigator.push(context, MaterialPageRoute(builder: (c)=>SearchPlacesScreen()));
+                                      var responseFromSearchScreen =
+                                          await Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                  builder: (c) =>
+                                                      const SearchPlacesScreen()));
 
-                                      if(responseFromSearchScreen=="obtainedDropOffLocation"){
+                                      if (responseFromSearchScreen ==
+                                          "obtainedDropOffLocation") {
                                         setState(() {
-                                          openNavigationDrawer=false;
-
+                                          openNavigationDrawer = false;
                                         });
                                       }
 
-                                      await drawPolylineFromOriginToDestination(darkTheme);
+                                      await drawPolylineFromOriginToDestination(
+                                          darkTheme);
                                     },
                                     child: Row(
                                       children: [
-                                        Icon(Icons.location_on_outlined, color: darkTheme? Colors.greenAccent.shade400:Colors.green,),
-                                        SizedBox(width: 10,),
+                                        Icon(
+                                          Icons.location_on_outlined,
+                                          color: darkTheme
+                                              ? Colors.greenAccent.shade400
+                                              : Colors.green,
+                                        ),
+                                        const SizedBox(
+                                          width: 10,
+                                        ),
                                         Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
-                                            Text("To",
-                                              style: TextStyle(color: darkTheme? Colors.greenAccent.shade400:Colors.green,
-                                                  fontSize: 16, fontWeight: FontWeight.bold
-                                              ),
+                                            Text(
+                                              "To",
+                                              style: TextStyle(
+                                                  color: darkTheme
+                                                      ? Colors
+                                                          .greenAccent.shade400
+                                                      : Colors.green,
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold),
                                             ),
                                             Text(
-                                              Provider.of<AppInfo>(context).userDropOffLocation!=null ?
-                                              Provider.of<AppInfo>(context).userDropOffLocation!.locationName!
+                                              Provider.of<AppInfo>(context)
+                                                          .userDropOffLocation !=
+                                                      null
+                                                  ? Provider.of<AppInfo>(
+                                                          context)
+                                                      .userDropOffLocation!
+                                                      .locationName!
                                                   : 'Add Drop Off Location',
-                                              style: const TextStyle(color: Colors.grey, fontSize: 14),
+                                              style: const TextStyle(
+                                                  color: Colors.grey,
+                                                  fontSize: 14),
                                             )
                                           ],
                                         )
-
                                       ],
                                     ),
                                   ),
@@ -435,56 +485,63 @@ class _MainScreenState extends State<MainScreen> {
                               ],
                             ),
                           ),
-                          SizedBox(height: 10,),
+                          const SizedBox(
+                            height: 10,
+                          ),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               ElevatedButton(
-                                  onPressed: (){
-                                    Navigator.push(context, MaterialPageRoute(builder: (c)=>PrecisePickupScreen()));
-                                  },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: darkTheme? Colors.greenAccent.shade400:Colors.greenAccent,
-                                  textStyle: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  )
-                                ),
-                                  child: Text(
-                                    "Change Pick Up",
-                                    style: TextStyle(
-                                      color: darkTheme? Colors.black: Colors.white,
-                                    ),
-                                  )
-                              ),
-
-                              SizedBox(width: 20,),
-
-                              ElevatedButton(
-                                  onPressed: (){
-
+                                  onPressed: () {
+                                    Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (c) =>
+                                                const PrecisePickupScreen()));
                                   },
                                   style: ElevatedButton.styleFrom(
-                                      backgroundColor: darkTheme? Colors.greenAccent.shade400:Colors.greenAccent,
+                                      backgroundColor: darkTheme
+                                          ? Colors.greenAccent.shade400
+                                          : Colors.greenAccent,
                                       textStyle: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
-                                      )
-                                  ),
+                                      )),
+                                  child: Text(
+                                    "Change Pick Up",
+                                    style: TextStyle(
+                                      color: darkTheme
+                                          ? Colors.black
+                                          : Colors.white,
+                                    ),
+                                  )),
+                              const SizedBox(
+                                width: 20,
+                              ),
+                              ElevatedButton(
+                                  onPressed: () {},
+                                  style: ElevatedButton.styleFrom(
+                                      backgroundColor: darkTheme
+                                          ? Colors.greenAccent.shade400
+                                          : Colors.greenAccent,
+                                      textStyle: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      )),
                                   child: Text(
                                     "Request Ride",
                                     style: TextStyle(
-                                      color: darkTheme? Colors.black: Colors.white,
+                                      color: darkTheme
+                                          ? Colors.black
+                                          : Colors.white,
                                     ),
-                                  )
-                              ),
+                                  )),
                             ],
                           )
                         ],
                       ),
                     )
                   ],
-
                 ),
               ),
             ),
@@ -494,4 +551,3 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 }
-

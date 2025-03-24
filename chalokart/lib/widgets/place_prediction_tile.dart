@@ -10,101 +10,100 @@ import '../infoHandler/app_info.dart';
 import '../models/direction.dart';
 
 class PlacePredictionTileDesign extends StatefulWidget {
-
-
   final PredictedPlaces? predictedPlaces;
 
-  PlacePredictionTileDesign({this.predictedPlaces});
-
+  const PlacePredictionTileDesign({super.key, this.predictedPlaces});
 
   @override
-  State<PlacePredictionTileDesign> createState() => _PlacePredictionTileDesignState();
+  State<PlacePredictionTileDesign> createState() =>
+      _PlacePredictionTileDesignState();
 }
 
 class _PlacePredictionTileDesignState extends State<PlacePredictionTileDesign> {
-
-  getPlaceDirectionDetails(String? placeId, context) async{
+  getPlaceDirectionDetails(String? placeId, context) async {
     showDialog(
         context: context,
-        builder: (BuildContext context)=>ProgressDialog(
-          message: "Setting Drop Off, Please wait...",
-        )
-    );
+        builder: (BuildContext context) => ProgressDialog(
+              message: "Setting Drop Off, Please wait...",
+            ));
 
-    String placeDirectionUrl="https://maps.googleapis.com/maps/api/place/details/json?place_id=$placeId&key=$mapKey";
+    String placeDirectionUrl =
+        "https://maps.googleapis.com/maps/api/place/details/json?place_id=$placeId&key=$mapKey";
 
-    var responseApi=await RequestAssistant.receiveRequest(placeDirectionUrl);
+    var responseApi = await RequestAssistant.receiveRequest(placeDirectionUrl);
 
     Navigator.pop(context);
 
-    if(responseApi=="Error occurred, no response"){
+    if (responseApi == "Error occurred, no response") {
       return;
     }
 
-    if(responseApi["status"]=="OK"){
-      Directions directions=Directions();
-      directions.locationName=responseApi["result"]["name"];
-      directions.locationId=placeId;
-      directions.locationLatitude=responseApi["result"]["geometry"]["location"]["lat"];
-      directions.locationLongitude=responseApi["result"]["geometry"]["location"]["lng"];
+    if (responseApi["status"] == "OK") {
+      Directions directions = Directions();
+      directions.locationName = responseApi["result"]["name"];
+      directions.locationId = placeId;
+      directions.locationLatitude =
+          responseApi["result"]["geometry"]["location"]["lat"];
+      directions.locationLongitude =
+          responseApi["result"]["geometry"]["location"]["lng"];
 
-      Provider.of<AppInfo>(context, listen: false).updateDropOffLocationAddress(directions);
+      Provider.of<AppInfo>(context, listen: false)
+          .updateDropOffLocationAddress(directions);
 
       setState(() {
-        userDropOffAddress=directions.locationName!;
+        userDropOffAddress = directions.locationName!;
       });
 
       Navigator.pop(context, "obtainedDropOffLocation");
     }
-
   }
 
   @override
   Widget build(BuildContext context) {
-    bool darkTheme=MediaQuery.of(context).platformBrightness==Brightness.dark;
+    bool darkTheme =
+        MediaQuery.of(context).platformBrightness == Brightness.dark;
     return ElevatedButton(
-        onPressed: (){
+        onPressed: () {
           getPlaceDirectionDetails(widget.predictedPlaces!.place_id, context);
         },
         style: ElevatedButton.styleFrom(
-          backgroundColor: darkTheme? Colors.greenAccent.shade400:Colors.green,
+          backgroundColor:
+              darkTheme ? Colors.greenAccent.shade400 : Colors.green,
         ),
         child: Padding(
-            padding: EdgeInsets.all(8),
+            padding: const EdgeInsets.all(8),
             child: Row(
               children: [
                 Icon(
                   Icons.add_location,
-                  color: darkTheme? Colors.greenAccent.shade400:Colors.greenAccent,
+                  color: darkTheme
+                      ? Colors.greenAccent.shade400
+                      : Colors.greenAccent,
                 ),
-
-                SizedBox(width: 10,),
+                const SizedBox(
+                  width: 10,
+                ),
                 Expanded(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.predictedPlaces!.main_text!,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: darkTheme? Colors.black54:Colors.white,
-                          )
-                        ),
-                        Text(
-                            widget.predictedPlaces!.secondary_text!,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: darkTheme? Colors.greenAccent.shade400:Colors.greenAccent,
-                            )
-                        ),
-                      ],
-                    )
-                )
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(widget.predictedPlaces!.main_text!,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: darkTheme ? Colors.black54 : Colors.white,
+                        )),
+                    Text(widget.predictedPlaces!.secondary_text!,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: darkTheme
+                              ? Colors.greenAccent.shade400
+                              : Colors.greenAccent,
+                        )),
+                  ],
+                ))
               ],
-            )
-        )
-    );
+            )));
   }
 }

@@ -5,7 +5,6 @@ import '../services/auth_service.dart';
 import '../services/storage_service.dart';
 import '../utils/message_utils.dart';
 import 'forgot_password_screen.dart';
-import 'home_screen.dart';
 import 'sign_up_screen.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -66,7 +65,7 @@ class _SignInScreenState extends State<SignInScreen> {
           _showPassword = false;
           _isLoading = false;
         });
-        
+
         showMessage(
           context,
           result['message'] ?? 'Failed to sign in',
@@ -111,9 +110,9 @@ class _SignInScreenState extends State<SignInScreen> {
                               right: -30,
                               top: -20,
                               child: Icon(
-                                  Icons.near_me,
-                                  size: 44,
-                                  color: Colors.black,
+                                Icons.near_me,
+                                size: 44,
+                                color: Colors.black,
                               ),
                             ),
                           ],
@@ -179,7 +178,7 @@ class _SignInScreenState extends State<SignInScreen> {
                             labelText: 'Email Id*',
                             labelStyle: const TextStyle(
                               fontFamily: 'AlbertSans',
-                              color:  Color.fromARGB(255, 105, 101, 101),
+                              color: Color.fromARGB(255, 105, 101, 101),
                               fontWeight: FontWeight.w600,
                               fontSize: 15,
                             ),
@@ -194,7 +193,8 @@ class _SignInScreenState extends State<SignInScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: AppColors.primaryColor),
+                              borderSide: const BorderSide(
+                                  color: AppColors.primaryColor),
                             ),
                           ),
                           validator: (value) {
@@ -234,11 +234,14 @@ class _SignInScreenState extends State<SignInScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: AppColors.primaryColor),
+                              borderSide: const BorderSide(
+                                  color: AppColors.primaryColor),
                             ),
                             suffixIcon: IconButton(
                               icon: Icon(
-                                _showPassword ? Icons.visibility_off : Icons.visibility,
+                                _showPassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
                                 color: Colors.grey[600],
                               ),
                               onPressed: () {
@@ -266,17 +269,26 @@ class _SignInScreenState extends State<SignInScreen> {
                               Navigator.push(
                                 context,
                                 PageRouteBuilder(
-                                  pageBuilder: (context, animation, secondaryAnimation) => const ForgotPasswordScreen(),
-                                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                  pageBuilder: (context, animation,
+                                          secondaryAnimation) =>
+                                      const ForgotPasswordScreen(),
+                                  transitionsBuilder: (context, animation,
+                                      secondaryAnimation, child) {
                                     const begin = Offset(1.0, 0.0);
                                     const end = Offset.zero;
                                     const curve = Curves.easeInOutCubic;
-                                    var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-                                    var offsetAnimation = animation.drive(tween);
-                                    return SlideTransition(position: offsetAnimation, child: child);
+                                    var tween = Tween(begin: begin, end: end)
+                                        .chain(CurveTween(curve: curve));
+                                    var offsetAnimation =
+                                        animation.drive(tween);
+                                    return SlideTransition(
+                                        position: offsetAnimation,
+                                        child: child);
                                   },
-                                  transitionDuration: const Duration(milliseconds: 400),
-                                  reverseTransitionDuration: const Duration(milliseconds: 400),
+                                  transitionDuration:
+                                      const Duration(milliseconds: 400),
+                                  reverseTransitionDuration:
+                                      const Duration(milliseconds: 400),
                                 ),
                               );
                             },
@@ -291,7 +303,8 @@ class _SignInScreenState extends State<SignInScreen> {
                                 fontFamily: 'AlbertSans',
                                 fontWeight: FontWeight.w700,
                                 decoration: TextDecoration.underline,
-                                decorationColor: Color.fromARGB(255, 51, 50, 50),
+                                decorationColor:
+                                    Color.fromARGB(255, 51, 50, 50),
                               ),
                             ),
                           ),
@@ -314,7 +327,8 @@ class _SignInScreenState extends State<SignInScreen> {
                                     width: 20,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          Colors.white),
                                     ),
                                   )
                                 : const Text(
@@ -338,7 +352,7 @@ class _SignInScreenState extends State<SignInScreen> {
                     const Text(
                       'First time here? ',
                       style: TextStyle(
-                        color:  Color.fromARGB(255, 59, 59, 57),
+                        color: Color.fromARGB(255, 59, 59, 57),
                         fontSize: 15,
                         fontFamily: 'AlbertSans',
                         fontWeight: FontWeight.w800,
@@ -349,17 +363,24 @@ class _SignInScreenState extends State<SignInScreen> {
                         Navigator.pushReplacement(
                           context,
                           PageRouteBuilder(
-                            pageBuilder: (context, animation, secondaryAnimation) => const SignUpScreen(),
-                            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                            pageBuilder:
+                                (context, animation, secondaryAnimation) =>
+                                    const SignUpScreen(),
+                            transitionsBuilder: (context, animation,
+                                secondaryAnimation, child) {
                               const begin = Offset(1.0, 0.0);
                               const end = Offset.zero;
                               const curve = Curves.easeInOutCubic;
-                              var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                              var tween = Tween(begin: begin, end: end)
+                                  .chain(CurveTween(curve: curve));
                               var offsetAnimation = animation.drive(tween);
-                              return SlideTransition(position: offsetAnimation, child: child);
+                              return SlideTransition(
+                                  position: offsetAnimation, child: child);
                             },
-                            transitionDuration: const Duration(milliseconds: 400),
-                            reverseTransitionDuration: const Duration(milliseconds: 400),
+                            transitionDuration:
+                                const Duration(milliseconds: 400),
+                            reverseTransitionDuration:
+                                const Duration(milliseconds: 400),
                           ),
                         );
                       },
@@ -371,7 +392,7 @@ class _SignInScreenState extends State<SignInScreen> {
                       child: const Text(
                         'Create Account',
                         style: TextStyle(
-                          color:  Color.fromARGB(255, 59, 59, 57),
+                          color: Color.fromARGB(255, 59, 59, 57),
                           fontSize: 15,
                           fontFamily: 'AlbertSans',
                           fontWeight: FontWeight.w800,
@@ -389,4 +410,4 @@ class _SignInScreenState extends State<SignInScreen> {
       ),
     );
   }
-} 
+}
