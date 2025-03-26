@@ -7,6 +7,7 @@ import '../utils/message_utils.dart';
 import 'forgot_password_screen.dart';
 import 'home_screen.dart';
 import 'sign_up_screen.dart';
+import '../global/global.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({Key? key}) : super(key: key);
@@ -52,7 +53,12 @@ class _SignInScreenState extends State<SignInScreen> {
           userId: data['user_id']?.toString() ?? '0',
           userName: data['name'] ?? 'User',
         );
+        currentUserEmail = _emailController.text;
 
+        print('User signed in successfully:');
+        final userDetails = await authService.fetchUserDetails(currentUserEmail);
+        // print('User details: $userDetails');
+        
         if (!mounted) return;
 
         Navigator.of(context).pushAndRemoveUntil(

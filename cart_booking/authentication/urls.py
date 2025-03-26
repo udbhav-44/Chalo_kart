@@ -3,7 +3,8 @@ from .views import (
     RegisterView, LoginView, FirebasePhoneAuthView,
     VerifyEmailView, ResendVerificationView,
     RequestPasswordResetView, ResetPasswordConfirmView,
-    SendEmailVerificationView
+    SendEmailVerificationView, FetchUserDetailsView,
+    UpdateUserDetailsView
 )
 
 urlpatterns = [
@@ -15,4 +16,6 @@ urlpatterns = [
     path('request-password-reset/', RequestPasswordResetView.as_view(), name='request-password-reset'),
     path('reset-password/', ResetPasswordConfirmView.as_view(), name='reset-password'),
     path('send-email-verification/', SendEmailVerificationView.as_view(), name='send-email-verification'),
+    path('fetch-details/', FetchUserDetailsView.as_view(), name='fetch-details'),
+    path('update-details/', UpdateUserDetailsView.as_view(), name='update-details'),
 ]

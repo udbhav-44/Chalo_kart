@@ -10,3 +10,5 @@ import 'package:chalokart/models/direction_details_with_polyline.dart';
 String userDropOffAddress="";
 
 DirectionDetailsWithPolyline? tripDirectionDetailsInfo;
+
+String currentUserEmail="";

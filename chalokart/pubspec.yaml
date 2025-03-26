@@ -46,6 +46,8 @@ dependencies:
   flutter_polyline_points: ^1.0.0
   convert: ^3.1.1
   google_polyline_algorithm: ^3.0.0
+  razorpay_flutter: ^1.2.7
+
 
   
   # The following adds the Cupertino Icons font to your application.

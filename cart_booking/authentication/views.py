@@ -325,3 +325,57 @@ class FirebasePhoneTestView(TemplateView):
             'appId': settings.FIREBASE_APP_ID
         }
         return context
+
+class FetchUserDetailsView(APIView):
+    permission_classes = (AllowAny,)
+
+    def post(self, request):
+        try:
+            email_id = request.data.get('email')
+            if not email_id:
+                return Response({'error': 'Email ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+            user = CustomUser.objects.get(email=email_id)
+            
+            return Response({
+                'success': True,
+                'data': {
+                    'name': user.get_full_name() ,
+                    'email': user.email,
+                    'phone_number': user.phone_number,
+                }
+            }, status=status.HTTP_200_OK)
+            
+        except CustomUser.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class UpdateUserDetailsView(APIView):
+    queryset = CustomUser.objects.all()
+    permission_classes = (AllowAny,)
+    serializer_class = UserSerializer
+
+    def post(self, request):
+        try:
+            email = request.data.get('email')
+            name = request.data.get('name')
+
+            user = CustomUser.objects.get(email=email)
+            user.first_name=name.split()[0]
+            if len(name.split()) > 1:  
+                user.last_name = " ".join(name.split()[1:])  
+            else:  
+                user.last_name =""
+            user.save()
+
+            return Response({
+                'success': True,
+                'message': 'User details updated successfully'
+            }, status=status.HTTP_200_OK)
+
+        except CustomUser.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+

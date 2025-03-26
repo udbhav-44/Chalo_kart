@@ -31,6 +31,9 @@ class AuthService {
       final data = json.decode(response.body);
 
       if (response.statusCode == 200) {
+        // print('User signed in successfully:');
+        // print('Name: ${data['name'] ?? 'Not provided'}');
+        // print('Email: ${data['email'] ?? 'Not provided'}');
         return {
           'success': true,
           'data': data,
@@ -48,6 +51,72 @@ class AuthService {
       };
     }
   }
+
+  Future<Map<String, dynamic>> fetchUserDetails(String email) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/fetch-details/'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'email': email,
+        }),
+      );
+
+      final data = json.decode(response.body);
+      // print(data);
+      if (response.statusCode == 200) {
+        print('User details fetched successfully:');
+        return {
+          'success': true,
+          'data': data['data'],
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['error'] ?? 'Failed to fetch user details',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Error fetching user details: $e',
+      };
+    }
+  }
+
+  Future<Map<String, dynamic>> updateUserDetails(String email, String name) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/update-details/'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'email': email,
+          'name':name
+        }),
+      );
+
+      final data = json.decode(response.body);
+      // print(data);
+      if (response.statusCode == 200) {
+        print('User details fetched successfully:');
+        return {
+          'success': true,
+          // 'data': data['data'],
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['error'] ?? 'Failed to fetch user details',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Error fetching user details: $e',
+      };
+    }
+  }
+
 
   // Sign Up with Email/Password (Django only)
   Future<Map<String, dynamic>> signUp({
