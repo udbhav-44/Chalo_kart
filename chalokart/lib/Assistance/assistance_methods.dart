@@ -1,4 +1,5 @@
 // import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
@@ -11,21 +12,22 @@ import 'package:chalokart/models/direction_details_with_polyline.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../global/map_key.dart';
+import '../global/user_model.dart';
 import '../infoHandler/app_info.dart';
 
 class AssistantMethods{
-  // static void readCurrentOnlineUserInfo() async{
-  //   currentUser=firebaseAuth.currentUser;
-  //   DatabaseReference userRef= FirebaseDatabase.instance
-  //       .ref()
-  //       .child("users")
-  //       .child(currentUser!.uid);
-  //   userRef.once().then((snap){
-  //     if(snap.snapshot.value!=null){
-  //       userModelCurrentInfo=UserModel.fromSnapshot(snap.snapshot);
-  //     }
-  //   });
-  // }
+  static void readCurrentOnlineUserInfo() async{
+    currentUser=firebaseAuth.currentUser;
+    DatabaseReference userRef= FirebaseDatabase.instance
+        .ref()
+        .child("users")
+        .child(currentUser!.uid);
+    userRef.once().then((snap){
+      if(snap.snapshot.value!=null){
+        userModelCurrentInfo=UserModel.fromSnapshot(snap.snapshot);
+      }
+    });
+  }
 
   static Future<String> searchAddressForGeoCoordinates(Position position, context) async{
     String apiUrl="https://maps.googleapis.com/maps/api/geocode/json?latlng=${position.latitude},${position.longitude}&key=$mapKey";

@@ -20,25 +20,40 @@ class _DrawerScreenState extends State<DrawerScreen> {
   @override
   void initState() {
     super.initState();
-    _loadUserName();
+    // Use Future.microtask to avoid blocking the UI during initialization
+    Future.microtask(() => _loadUserName());
   }
   
   Future<void> _loadUserName() async {
+    if (!mounted) return;
+    
     try {
       setState(() {
         _isLoading = true;
       });
+      
+      // Check if we already have the info in global variables
+      if (userModelCurrentInfo != null && userModelCurrentInfo!.name != null) {
+        if (!mounted) return;
+        setState(() {
+          _userName = userModelCurrentInfo!.name!;
+          _isLoading = false;
+        });
+        return;
+      }
       
       // Get current user from Firebase directly
       final user = FirebaseAuth.instance.currentUser;
       
       if (user != null) {
         // Use display name or fallback to email
+        if (!mounted) return;
         setState(() {
           _userName = user.displayName ?? user.email?.split('@')[0] ?? 'User';
           _isLoading = false;
         });
       } else {
+        if (!mounted) return;
         setState(() {
           _userName = "Unknown User";
           _isLoading = false;
@@ -46,6 +61,7 @@ class _DrawerScreenState extends State<DrawerScreen> {
       }
     } catch (e) {
       debugPrint('Error loading user name: $e');
+      if (!mounted) return;
       setState(() {
         _userName = "Unknown User";
         _isLoading = false;
@@ -60,9 +76,7 @@ class _DrawerScreenState extends State<DrawerScreen> {
       
       // Clear shared preferences
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('auth_token');
-      await prefs.remove('user_id');
-      await prefs.remove('user_name');
+      await prefs.clear(); // Clear all preferences
       
       if (!mounted) return;
       

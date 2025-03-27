@@ -6,7 +6,7 @@ import '../utils/message_utils.dart';
 class VerifyEmailScreen extends StatefulWidget {
   final String email;
 
-  const VerifyEmailScreen({Key? key, required this.email}) : super(key: key);
+  const VerifyEmailScreen({super.key, required this.email});
 
   @override
   State<VerifyEmailScreen> createState() => _VerifyEmailScreenState();

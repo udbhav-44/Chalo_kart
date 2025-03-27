@@ -398,8 +398,18 @@ class _MainScreenState extends State<MainScreen> {
               top: 50,
               left: 20,
               child: GestureDetector(
-                onTap: (){
-                  _scaffoldState.currentState!.openDrawer();
+                onTap: () {
+                  try {
+                    if (_scaffoldState.currentState != null) {
+                      _scaffoldState.currentState!.openDrawer();
+                    }
+                  } catch (e) {
+                    debugPrint("Error opening drawer: $e");
+                    // Show a toast or snackbar if there's an error
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Could not open menu"))
+                    );
+                  }
                 },
                 child: CircleAvatar(
                   backgroundColor: darkTheme? Colors.greenAccent.shade400:Colors.white,
@@ -407,7 +417,6 @@ class _MainScreenState extends State<MainScreen> {
                     Icons.menu,
                     color: darkTheme? Colors.greenAccent:Colors.greenAccent,
                   ),
-
                 ),
               ),
             ),

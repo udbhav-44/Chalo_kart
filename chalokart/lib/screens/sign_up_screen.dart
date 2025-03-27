@@ -1,19 +1,21 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import '../global/global.dart';
 import '../utils/app_colors.dart';
 import '../services/auth_service.dart';
 import '../utils/message_utils.dart';
+import 'main_screen.dart';
 import 'sign_in_screen.dart';
 import 'dart:async';
-import '../services/storage_service.dart';
-import '../screens/home_screen.dart';
 import '../utils/logger.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SignUpScreen extends StatefulWidget {
-  const SignUpScreen({Key? key}) : super(key: key);
+  const SignUpScreen({super.key});
 
   @override
   State<SignUpScreen> createState() => _SignUpScreenState();
@@ -340,37 +342,62 @@ class _SignUpScreenState extends State<SignUpScreen> {
       try {
         // Create user account directly with Firebase
         AppLogger.info('Creating user account with Firebase');
-        
-        final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: _emailController.text,
-          password: _passwordController.text,
-        );
-        
         if (!mounted) return;
-        
-        if (userCredential.user != null) {
-          // Update user profile with name
-          await userCredential.user!.updateDisplayName(_nameController.text);
-          
-          // Save user data to SharedPreferences
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('auth_token', 'logged_in');
-          await prefs.setString('user_id', userCredential.user!.uid);
-          await prefs.setString('user_email', userCredential.user!.email ?? '');
-          await prefs.setString('user_name', _nameController.text);
-          await prefs.setBool('is_logged_in', true);
-          
+        // final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        //   email: _emailController.text.trim(),
+        //   password: _passwordController.text.trim(),
+        // );
+        // if (userCredential.user != null) {
+        //   // Update user profile with name
+        //   await userCredential.user!.updateDisplayName(_nameController.text);
+        //
+        //   // Save user data to SharedPreferences
+        //   final prefs = await SharedPreferences.getInstance();
+        //   await prefs.setString('auth_token', 'logged_in');
+        //   await prefs.setString('user_id', userCredential.user!.uid);
+        //   await prefs.setString('user_email', userCredential.user!.email ?? '');
+        //   await prefs.setString('user_name', _nameController.text);
+        //   await prefs.setBool('is_logged_in', true);
+        //
+        //   scaffoldContext.showSnackBar(const SnackBar(
+        //     backgroundColor: Colors.green,
+        //     content: Text('Account created successfully')
+        //   ));
+        //
+        //   // Navigate to home screen
+        //   navigator.pushAndRemoveUntil(
+        //     MaterialPageRoute(builder: (context) => const SignInScreen()),
+        //     (route) => false,
+        //   );
+        // }
+
+        await firebaseAuth.createUserWithEmailAndPassword(
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim()
+        ).then((auth) async{
+          currentUser=auth.user;
+          if(currentUser!=null){
+            Map userMap={
+              "id": currentUser!.uid,
+              "name":_nameController.text.trim(),
+              "email":_emailController.text.trim(),
+              "phone":_mobileController.text.trim(),
+            };
+
+            DatabaseReference userRef =FirebaseDatabase.instance.ref().child("users");
+            userRef.child(currentUser!.uid).set(userMap);
+          }
           scaffoldContext.showSnackBar(const SnackBar(
-            backgroundColor: Colors.green,
-            content: Text('Account created successfully')
+              backgroundColor: Colors.green,
+              content: Text('Account created successfully')
           ));
-          
-          // Navigate to home screen
-          navigator.pushAndRemoveUntil(
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
-            (route) => false,
-          );
-        }
+          Navigator.push(context, MaterialPageRoute(builder: (c)=>MainScreen()));
+        }).catchError((errorMessage){
+          scaffoldContext.showSnackBar( SnackBar(
+                  backgroundColor: Colors.green,
+                  content: Text('Error occurred: $errorMessage')
+                ));
+        });
       } on FirebaseAuthException catch (e) {
         String errorMessage;
         switch (e.code) {

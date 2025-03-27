@@ -78,12 +78,7 @@ class AuthService {
   }
 
   // Sign Up with Email/Password
-  Future<Map<String, dynamic>> signUp({
-    required String name,
-    required String email,
-    required String mobile,
-    required String password,
-  }) async {
+  Future<Map<String, dynamic>> signUp({required String name, required String email, required String mobile, required String password,}) async {
     try {
       // Create user with email and password
       final userCredential = await _auth.createUserWithEmailAndPassword(

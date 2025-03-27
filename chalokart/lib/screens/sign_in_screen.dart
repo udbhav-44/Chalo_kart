@@ -1,15 +1,18 @@
+import 'package:chalokart/screens/splash_screen.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import '../Assistance/assistance_methods.dart';
+import '../global/user_model.dart';
 import '../utils/app_colors.dart';
 import 'forgot_password_screen.dart';
-import 'home_screen.dart';
+import 'main_screen.dart';
 import 'sign_up_screen.dart';
 import '../global/global.dart';
-import '../utils/logger.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class SignInScreen extends StatefulWidget {
-  const SignInScreen({Key? key}) : super(key: key);
+  const SignInScreen({super.key});
 
   @override
   State<SignInScreen> createState() => _SignInScreenState();
@@ -37,52 +40,67 @@ class _SignInScreenState extends State<SignInScreen> {
       });
 
       try {
-        // Get email and password from controllers
-        final email = _emailController.text.trim();
-        final password = _passwordController.text.trim();
-        
-        debugPrint('Signing in with email: $email');
-        
-        // Use Firebase Auth directly - no extra service layer
-        final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: email,
-          password: password
-        );
-        
-        if (!mounted) return;
-        
-        // Get user from credential
-        final user = credential.user;
-        
-        if (user != null) {
-          // Save basic auth info to SharedPreferences directly - no complex objects
-          try {
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.setString('auth_token', 'logged_in');
-            await prefs.setString('user_id', user.uid);
-            await prefs.setString('user_email', user.email ?? '');
-            await prefs.setString('user_name', user.displayName ?? email.split('@')[0]);
-            await prefs.setBool('is_logged_in', true);
-          } catch (e) {
-            debugPrint('Warning: Could not save user data: $e');
+        await firebaseAuth.signInWithEmailAndPassword(
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim()
+        ).then((auth) async {
+          // First verify if the user exists in Firebase Auth
+          if (auth.user != null) {
+            // Set currentUser global variable
+            currentUser = auth.user;
+            
+            // Check if the user exists in the database
+            DatabaseReference userRef = FirebaseDatabase.instance.ref().child("users");
+            userRef.child(firebaseAuth.currentUser!.uid).once().then((value) async {
+              final snap = value.snapshot;
+              
+              if (snap.value != null) {
+                // User exists in database, proceed with normal login
+                userModelCurrentInfo = UserModel.fromSnapshot(snap);
+                if (!mounted) return;
+                
+                AssistantMethods.readCurrentOnlineUserInfo();
+                await Fluttertoast.showToast(msg: "Successfully Logged In");
+                Navigator.push(context, MaterialPageRoute(builder: (c) => MainScreen()));
+              } else {
+                // User exists in Auth but not in database - create basic user data
+                // This prevents "Invalid Credentials" error for auth-only users
+                try {
+                  Map<String, dynamic> userMap = {
+                    "email": auth.user!.email,
+                    "name": auth.user!.displayName ?? auth.user!.email!.split('@')[0],
+                    "phone": auth.user!.phoneNumber ?? ""
+                  };
+                  
+                  // Create user in the database
+                  await userRef.child(auth.user!.uid).set(userMap);
+                  
+                  // Read user info again
+                  await userRef.child(auth.user!.uid).once().then((value) {
+                    userModelCurrentInfo = UserModel.fromSnapshot(value.snapshot);
+                  });
+                  
+                  if (!mounted) return;
+                  await Fluttertoast.showToast(msg: "Successfully Logged In");
+                  Navigator.push(context, MaterialPageRoute(builder: (c) => MainScreen()));
+                } catch (e) {
+                  debugPrint("Error creating user in database: $e");
+                  await Fluttertoast.showToast(msg: "Error creating user profile");
+                  firebaseAuth.signOut();
+                }
+              }
+            }).catchError((error) {
+              debugPrint("Database error: $error");
+              Fluttertoast.showToast(msg: "Database error: Please try again later");
+              firebaseAuth.signOut();
+            });
+          } else {
+            await Fluttertoast.showToast(msg: "Authentication failed");
+            firebaseAuth.signOut();
           }
-          
-          // Set global variable
-          currentUserEmail = email;
-          
-          debugPrint('Login successful. User ID: ${user.uid}');
-          
-          if (!mounted) return;
-          
-          // Navigate to HomeScreen
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
-          );
-        } else {
-          debugPrint('User is null after successful authentication');
-          _showError('Failed to sign in. Please try again.');
-        }
+        }).catchError((errorMessage) {
+          Fluttertoast.showToast(msg: "Error Occurred: \n $errorMessage");
+        });
       } on FirebaseAuthException catch (e) {
         debugPrint('Firebase Auth error: ${e.code}');
         
