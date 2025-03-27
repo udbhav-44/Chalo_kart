@@ -2,23 +2,79 @@ import 'package:flutter/material.dart';
 import 'package:chalokart/global/global.dart';
 import 'package:chalokart/screens/profile_screen.dart';
 import 'package:chalokart/screens/sign_in_screen.dart';
-import 'package:chalokart/services/auth_service.dart';
 import 'package:chalokart/screens/razor_pay.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DrawerScreen extends StatefulWidget {
   const DrawerScreen({super.key});
 
   @override
-  _DrawerScreenState createState() => _DrawerScreenState();
+  State<DrawerScreen> createState() => _DrawerScreenState();
 }
 
 class _DrawerScreenState extends State<DrawerScreen> {
-  late Future<Map<String, dynamic>> userDetailsFuture;
+  String _userName = "Loading...";
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    userDetailsFuture = AuthService().fetchUserDetails(currentUserEmail);
+    _loadUserName();
+  }
+  
+  Future<void> _loadUserName() async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+      
+      // Get current user from Firebase directly
+      final user = FirebaseAuth.instance.currentUser;
+      
+      if (user != null) {
+        // Use display name or fallback to email
+        setState(() {
+          _userName = user.displayName ?? user.email?.split('@')[0] ?? 'User';
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _userName = "Unknown User";
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading user name: $e');
+      setState(() {
+        _userName = "Unknown User";
+        _isLoading = false;
+      });
+    }
+  }
+  
+  Future<void> _signOut() async {
+    try {
+      // Sign out from Firebase directly
+      await FirebaseAuth.instance.signOut();
+      
+      // Clear shared preferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('auth_token');
+      await prefs.remove('user_id');
+      await prefs.remove('user_name');
+      
+      if (!mounted) return;
+      
+      // Navigate to sign in screen and clear all previous routes
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (c) => const SignInScreen()),
+        (route) => false,
+      );
+    } catch (e) {
+      debugPrint('Error signing out: $e');
+    }
   }
 
   @override
@@ -49,28 +105,16 @@ class _DrawerScreenState extends State<DrawerScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  /// Fetch and Display User Name
-                  FutureBuilder<Map<String, dynamic>>(
-                    future: userDetailsFuture,
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Text(
+                  // Display User Name
+                  _isLoading 
+                      ? const Text(
                           "Loading...",
                           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                        );
-                      } else if (snapshot.hasError || !snapshot.data!['success']) {
-                        return const Text(
-                          "Unknown User",
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                        );
-                      } else {
-                        return Text(
-                          snapshot.data!['data']['name'] ?? "Unknown User",
+                        )
+                      : Text(
+                          _userName,
                           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                        );
-                      }
-                    },
-                  ),
+                        ),
 
                   const SizedBox(height: 10),
                   GestureDetector(
@@ -78,7 +122,7 @@ class _DrawerScreenState extends State<DrawerScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (c) => const ProfileScreen()),
-                      );
+                      ).then((_) => _loadUserName()); // Refresh name when returning from profile
                     },
                     child: Text(
                       "Edit Profile",
@@ -98,7 +142,7 @@ class _DrawerScreenState extends State<DrawerScreen> {
                         MaterialPageRoute(builder: (c) => const RazorPay()),
                       );
                     },
-                    child: Text(
+                    child: const Text(
                       "Wallet",
                       style: TextStyle(
                         fontSize: 15,
@@ -119,15 +163,9 @@ class _DrawerScreenState extends State<DrawerScreen> {
                 ],
               ),
 
-              /// Logout Button
+              // Logout Button
               GestureDetector(
-                onTap: () {
-                  // firebaseAuth.signOut();
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (c) => const SignInScreen()),
-                  );
-                },
+                onTap: _signOut,
                 child: const Text(
                   "Logout",
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.red),

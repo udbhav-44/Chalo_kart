@@ -12,10 +12,12 @@ import 'package:chalokart/infoHandler/app_info.dart';
 import 'package:chalokart/screens/drawer_screen.dart';
 import 'package:chalokart/screens/precise_pickup_screen.dart';
 import 'package:chalokart/screens/search_places_screen.dart';
+import 'package:chalokart/utils/app_colors.dart';
 
 import '../Assistance/assistance_methods.dart';
 import '../models/direction.dart';
 import '../widgets/progress_dialog.dart';
+import '../utils/logger.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -65,25 +67,47 @@ class _MainScreenState extends State<MainScreen> {
   bool activeNearbyDriverKeysLoaded=false;
 
   BitmapDescriptor? activeNearbyIcon;
+  
+  bool _isInitializing = true;
+  bool _initializationError = false;
+  String _errorMessage = "";
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeScreen();
+  }
+  
+  Future<void> _initializeScreen() async {
+    try {
+      checkLocationPermissionAllowed();
+      _isInitializing = false;
+      setState(() {});
+    } catch (e) {
+      AppLogger.error('Error initializing MainScreen', e);
+      _initializationError = true;
+      _errorMessage = e.toString();
+      _isInitializing = false;
+      setState(() {});
+    }
+  }
 
 
   locateUserPosition() async{
-    Position cPosition= await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-    userCurrentPosition=cPosition;
-
-    LatLng latLngPosition = LatLng(userCurrentPosition!.latitude, userCurrentPosition!.longitude);
-    CameraPosition cameraPosition=CameraPosition(target: latLngPosition, zoom: 15);
-
-    newGoogleMapController!.animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
-
-    String humanReadableAddress=await AssistantMethods.searchAddressForGeoCoordinates(userCurrentPosition!, context);
-    print("this is your address$humanReadableAddress");
-
-
-    // initializeGeoFireListener();
-    //
-    // AssistantMethods.readTripsKeysForOnlineUser(context);
-
+    try {
+      Position cPosition= await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      userCurrentPosition=cPosition;
+  
+      LatLng latLngPosition = LatLng(userCurrentPosition!.latitude, userCurrentPosition!.longitude);
+      CameraPosition cameraPosition=CameraPosition(target: latLngPosition, zoom: 15);
+  
+      newGoogleMapController!.animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
+  
+      String humanReadableAddress=await AssistantMethods.searchAddressForGeoCoordinates(userCurrentPosition!, context);
+      AppLogger.info('Address: $humanReadableAddress');
+    } catch (e) {
+      AppLogger.error('Error locating user position', e);
+    }
   }
 
 
@@ -236,56 +260,113 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-
-    checkLocationPermissionAllowed();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    bool darkTheme=MediaQuery.of(context).platformBrightness==Brightness.dark;
-    return GestureDetector(
-      onTap:(){
-        FocusScope.of(context).unfocus();
-      },
-      child: Scaffold(
-        key: _scaffoldState,
-        drawer: const DrawerScreen(),
-        body: Stack(
+    bool darkTheme = MediaQuery.of(context).platformBrightness==Brightness.dark;
+    
+    if (_isInitializing) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryColor),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                "Loading map...",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: darkTheme ? Colors.white : Colors.black,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
+    if (_initializationError) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                color: Colors.red,
+                size: 50,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                "Error initializing map",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: darkTheme ? Colors.white : Colors.black,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Text(
+                  _errorMessage,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[700],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () {
+                  _isInitializing = true;
+                  _initializationError = false;
+                  setState(() {});
+                  _initializeScreen();
+                },
+                child: Text("Retry"),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
+    return Scaffold(
+      key: _scaffoldState,
+      drawer: DrawerScreen(),
+      body: GestureDetector(
+        onTap:(){
+          FocusScope.of(context).unfocus();
+        },
+        child: Stack(
           children: [
             GoogleMap(
+              padding: EdgeInsets.only(bottom: bottomPaddingOfMap, top: 30),
               mapType: MapType.normal,
-              myLocationEnabled:true,
-              zoomGesturesEnabled:true,
-              zoomControlsEnabled:true,
-              initialCameraPosition: _kGooglePlex,
               polylines: polylineSet,
               markers: markerSet,
+              initialCameraPosition: _kGooglePlex,
+              myLocationEnabled: true,
+              myLocationButtonEnabled: true,
+              zoomGesturesEnabled: true,
+              zoomControlsEnabled: true,
               circles: circleSet,
-              onMapCreated: (GoogleMapController controller){
+              onMapCreated: (GoogleMapController controller) {
                 _controllerGoogleMap.complete(controller);
                 newGoogleMapController=controller;
 
                 setState(() {
-                  bottomPaddingOfMap=200;
+                  bottomPaddingOfMap=290;
                 });
 
                 locateUserPosition();
               },
-              // onCameraMove: (CameraPosition? position){
-              //   if(pickLocation!=position!.target){
-              //     setState(() {
-              //       pickLocation = position.target;
-              //     });
-              //   }
-              // },
-              //
-              // onCameraIdle: (){
-              //   getAddressesFromLatLng();
-              // },
-
             ),
             // Align(
             //   alignment: Alignment.center,

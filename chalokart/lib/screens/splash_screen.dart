@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../services/storage_service.dart';
-import '../utils/app_colors.dart';
+import 'dart:async';
+import '../services/firebase_auth_service.dart';
+import '../utils/logger.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({Key? key}) : super(key: key);
@@ -10,42 +11,80 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  final _storageService = StorageService();
-
+  final _authService = FirebaseAuthService();
+  
   @override
   void initState() {
     super.initState();
-    _checkAuth();
+    _initializeApp();
   }
-
-  Future<void> _checkAuth() async {
-    final isLoggedIn = await _storageService.isLoggedIn();
+  
+  Future<void> _initializeApp() async {
+    // Short delay to show splash screen
+    await Future.delayed(const Duration(seconds: 2));
     
     if (!mounted) return;
-
-    if (isLoggedIn) {
-      Navigator.of(context).pushReplacementNamed('/home');
-    } else {
-      Navigator.of(context).pushReplacementNamed('/signin');
+    
+    _checkAuth();
+  }
+  
+  Future<void> _checkAuth() async {
+    try {
+      AppLogger.info('Checking authentication status');
+      
+      // Use our new auth service which handles SharedPreferences
+      final isSignedIn = await _authService.isSignedInFromPrefs();
+      
+      if (!mounted) return;
+      
+      // Navigate based on auth status
+      if (isSignedIn) {
+        AppLogger.info('User is signed in, navigating to home');
+        Navigator.of(context).pushReplacementNamed('/home');
+      } else {
+        AppLogger.info('User is not signed in, navigating to signin');
+        Navigator.of(context).pushReplacementNamed('/signin');
+      }
+    } catch (e) {
+      AppLogger.error('Error checking auth', e);
+      
+      if (mounted) {
+        // On error, go to sign in screen
+        Navigator.of(context).pushReplacementNamed('/signin');
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundColor,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Image.asset(
-              'assets/images/logo.png', // Update with the correct path to your logo
-              height: 100,
+              'assets/images/logo.png',
+              width: 150,
+              height: 150,
+              errorBuilder: (context, error, stackTrace) {
+                return const Icon(
+                  Icons.local_taxi,
+                  size: 100,
+                  color: Colors.blue,
+                );
+              },
             ),
-            const SizedBox(height: 24),
-            const CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryColor),
+            const SizedBox(height: 20),
+            const Text(
+              'ChaloKART',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Montserrat',
+              ),
             ),
+            const SizedBox(height: 30),
+            const CircularProgressIndicator(),
           ],
         ),
       ),

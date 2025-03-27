@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "236822305145",
+    "firebase_url": "https://chalokart-83ef4-default-rtdb.firebaseio.com",
+    "project_id": "chalokart-83ef4",
+    "storage_bucket": "chalokart-83ef4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:236822305145:android:d2e96d052461ee2de477a8",
+        "android_client_info": {
+          "package_name": "com.example.chalokart"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCR7SXvVNJKPxEUk60NMekd34SCZ3JGDDE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:236822305145:android:8fa389ae35d239a7e477a8",
+        "android_client_info": {
+          "package_name": "com.example.trippo_maps"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCR7SXvVNJKPxEUk60NMekd34SCZ3JGDDE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

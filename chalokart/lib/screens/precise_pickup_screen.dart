@@ -11,6 +11,7 @@ import '../Assistance/assistance_methods.dart';
 import '../global/map_key.dart';
 import '../infoHandler/app_info.dart';
 import '../models/direction.dart';
+import '../utils/logger.dart';
 
 class PrecisePickupScreen extends StatefulWidget {
   const PrecisePickupScreen({super.key});
@@ -76,7 +77,7 @@ class _PrecisePickupScreenState extends State<PrecisePickupScreen> {
 
     }
     catch(e){
-      print(e);
+      AppLogger.error('Error getting address from coordinates', e);
     }
   }
   @override

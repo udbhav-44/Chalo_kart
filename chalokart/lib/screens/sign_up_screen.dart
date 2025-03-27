@@ -8,6 +8,9 @@ import 'sign_in_screen.dart';
 import 'dart:async';
 import '../services/storage_service.dart';
 import '../screens/home_screen.dart';
+import '../utils/logger.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({Key? key}) : super(key: key);
@@ -176,6 +179,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final scaffoldContext = ScaffoldMessenger.of(context);
 
     try {
+      // Simple verification call without complex data handling
       final result = await _authService.verifyOTP(
         _verificationId!,
         _mobileOtpController.text,
@@ -183,18 +187,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       if (!mounted) return;
 
-      if (result['success']) {
+      // Simplified response handling with proper type safety
+      if (result['success'] == true) {
         setState(() {
           _isMobileVerified = true;
           _mobileResendTimer?.cancel();
         });
+        
         scaffoldContext.showSnackBar(const SnackBar(
           backgroundColor: Colors.green,
           content: Text('Mobile number verified successfully'),
         ));
       } else {
+        // Safe access to error message
+        final errorMessage = result['message'] as String? ?? 'Failed to verify OTP';
+        
         scaffoldContext.showSnackBar(SnackBar(
-          content: Text(result['message']),
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        AppLogger.error('Error in _verifyMobileOtp', e);
+        
+        scaffoldContext.showSnackBar(SnackBar(
+          content: Text('Verification error: ${e.toString()}'),
           backgroundColor: Colors.red,
         ));
       }
@@ -319,246 +337,76 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       final navigator = Navigator.of(context);
 
-      // First, send email verification OTP
-      final sendOtpResult = await _authService.sendEmailVerification(_emailController.text);
-
-      if (!mounted) return;
-
-      if (sendOtpResult['success']) {
-        _startEmailResendTimer();
-        final verificationResult = await showDialog<Map<String, dynamic>>(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => StatefulBuilder(
-            builder: (context, setDialogState) {
-              return AlertDialog(
-                title: const Text(
-                  'Verify Email',
-                  style: TextStyle(
-                    fontFamily: 'AlbertSans',
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      'Please enter the OTP sent to your email\nThis OTP will expire in 5 minutes.',
-                      style: TextStyle(
-                        fontFamily: 'AlbertSans',
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _emailOtpController,
-                      keyboardType: TextInputType.number,
-                      maxLength: 6,
-                      style: const TextStyle(
-                        fontFamily: 'AlbertSans',
-                        fontSize: 15,
-                      ),
-                      decoration: InputDecoration(
-                        labelText: 'Enter Email OTP',
-                        counterText: '',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey[400]!),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey[400]!),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: AppColors.primaryColor),
-                        ),
-                      ),
-                      onChanged: (value) {
-                        setDialogState(() {});
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 45,
-                      child: ElevatedButton(
-                        onPressed: _isVerifyingEmail || _emailOtpController.text.length != 6 ? null : () async {
-                          setDialogState(() => _isVerifyingEmail = true);
-                          final navigator = Navigator.of(context);
-                          final dialogContext = context;
-                          
-                          try {
-                            final verifyResult = await _authService.verifyEmail(
-                              _emailController.text,
-                              _emailOtpController.text,
-                            );
-                            
-                            if (!mounted) return;
-                            
-                            if (verifyResult['success']) {
-                              navigator.pop(verifyResult);
-                            } else {
-                              if (verifyResult['expired'] == true) {
-                                showMessage(
-                                  dialogContext,
-                                  'OTP has expired. Please request a new one.',
-                                  isError: true,
-                                );
-                                navigator.pop(verifyResult);
-                                _resendEmailVerification();
-                              } else {
-                                showMessage(
-                                  dialogContext,
-                                  verifyResult['message'] ?? 'Failed to verify email',
-                                  isError: true,
-                                );
-                              }
-                            }
-                          } finally {
-                            if (mounted) {
-                              setDialogState(() => _isVerifyingEmail = false);
-                            }
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryColor,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: Text(
-                          _isVerifyingEmail ? 'Verifying...' : 'Verify Email',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                            fontFamily: 'AlbertSans',
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    if (_emailResendCountdown > 0)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          'Resend OTP in $_emailResendCountdown seconds',
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontFamily: 'AlbertSans',
-                          ),
-                        ),
-                      ),
-                    if (_emailResendCountdown == 0)
-                      TextButton(
-                        onPressed: _isResendingEmailOtp ? null : () async {
-                          final dialogContext = context;
-                          await _resendEmailVerification();
-                          if (dialogContext.mounted) {
-                            setDialogState(() {});
-                          }
-                        },
-                        child: Text(
-                          _isResendingEmailOtp ? 'Resending...' : 'Resend OTP',
-                          style: const TextStyle(
-                            fontFamily: 'AlbertSans',
-                            color: AppColors.primaryColor,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      final navigator = Navigator.of(context);
-                      navigator.pop({'success': false, 'cancelled': true});
-                    },
-                    child: const Text(
-                      'Cancel',
-                      style: TextStyle(
-                        fontFamily: 'AlbertSans',
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
+      try {
+        // Create user account directly with Firebase
+        AppLogger.info('Creating user account with Firebase');
+        
+        final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: _emailController.text,
+          password: _passwordController.text,
         );
-
+        
         if (!mounted) return;
-
-        if (verificationResult != null && verificationResult['success']) {
-          // Only create user account after email is verified
-          final result = await _authService.signUp(
-            name: _nameController.text,
-            email: _emailController.text,
-            mobile: _mobileController.text,
-            password: _passwordController.text,
-          );
-
-          if (!mounted) return;
-
-          if (result['success']) {
-            scaffoldContext.showSnackBar(
-            const SnackBar(backgroundColor: Colors.green,content:
-             Text('Account created successfully')));
-            // Automatically sign in the user
-            final signInResult = await _authService.signIn(
-              _emailController.text,
-              _passwordController.text,
-            );
-
-            if (!mounted) return;
-
-            if (signInResult['success']) {
-              final data = signInResult['data'];
-              final storageService = StorageService();
-
-              await storageService.saveAuthData(
-                token: data['tokens']['access'],
-                userId: data['user_id']?.toString() ?? '0',
-                userName: data['name'] ?? 'User',
-              );
-
-              if (!mounted) return;
-
-              navigator.pushAndRemoveUntil(
-                MaterialPageRoute(builder: (context) => const SignInScreen()),
-                (route) => false,
-              );
-            } else {
-              // If auto sign-in fails, redirect to sign-in screen
-              navigator.pushReplacement(
-                MaterialPageRoute(builder: (context) => const SignInScreen()),
-              );
-            }
-          } else {
-            scaffoldContext.showSnackBar(SnackBar(
-              content: Text(result['message'] ?? 'Failed to create account'),
-              backgroundColor: Colors.red,
-            ));
-          }
-        } else if (verificationResult != null && !verificationResult['cancelled']) {
-          scaffoldContext.showSnackBar(SnackBar(
-            content: Text(verificationResult['message'] ?? 'Failed to verify email'),
-            backgroundColor: Colors.red,
+        
+        if (userCredential.user != null) {
+          // Update user profile with name
+          await userCredential.user!.updateDisplayName(_nameController.text);
+          
+          // Save user data to SharedPreferences
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('auth_token', 'logged_in');
+          await prefs.setString('user_id', userCredential.user!.uid);
+          await prefs.setString('user_email', userCredential.user!.email ?? '');
+          await prefs.setString('user_name', _nameController.text);
+          await prefs.setBool('is_logged_in', true);
+          
+          scaffoldContext.showSnackBar(const SnackBar(
+            backgroundColor: Colors.green,
+            content: Text('Account created successfully')
           ));
+          
+          // Navigate to home screen
+          navigator.pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+            (route) => false,
+          );
         }
-      } else {
+      } on FirebaseAuthException catch (e) {
+        String errorMessage;
+        switch (e.code) {
+          case 'email-already-in-use':
+            errorMessage = 'Email is already in use.';
+            break;
+          case 'invalid-email':
+            errorMessage = 'Invalid email address.';
+            break;
+          case 'weak-password':
+            errorMessage = 'Password is too weak.';
+            break;
+          case 'operation-not-allowed':
+            errorMessage = 'Email/password accounts are not enabled.';
+            break;
+          default:
+            errorMessage = e.message ?? 'An error occurred during registration.';
+        }
+        
+        AppLogger.error('FirebaseAuthException during signup', e);
         scaffoldContext.showSnackBar(SnackBar(
-          content: Text(sendOtpResult['message'] ?? 'Failed to send verification email'),
+          content: Text(errorMessage),
           backgroundColor: Colors.red,
         ));
-      }
-
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+      } catch (e) {
+        AppLogger.error('Error during signup', e);
+        scaffoldContext.showSnackBar(SnackBar(
+          content: Text('Error creating account: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ));
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     }
   }

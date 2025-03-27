@@ -1,4 +1,3 @@
-import 'package:chalokart/screens/main_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
@@ -10,10 +9,20 @@ import 'screens/home_screen.dart';
 import 'screens/verify_email_screen.dart';
 import 'utils/app_colors.dart';
 import 'infoHandler/app_info.dart';
+import 'utils/logger.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  AppLogger.init();
+  
+  try {
+    // Initialize Firebase with default options
+    await Firebase.initializeApp();
+    AppLogger.info('Firebase initialized successfully');
+  } catch (e) {
+    AppLogger.error('Error initializing Firebase', e);
+  }
+  
   runApp(const MyApp());
 }
 
@@ -61,7 +70,7 @@ class MyApp extends StatelessWidget {
         },
         initialRoute: '/',
         routes: {
-          '/': (context) => const SignInScreen(),
+          '/': (context) => const SplashScreen(),
           '/signin': (context) => const SignInScreen(),
           '/signup': (context) => const SignUpScreen(),
           '/forgot-password': (context) => const ForgotPasswordScreen(),

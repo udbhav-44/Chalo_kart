@@ -1,16 +1,23 @@
-class DirectionDetailsInfo{
-  int? distance_value;
-  int? duration_value;
-  String? e_points;
-  String? distance_text;
-  String? duration_text;
+class DirectionDetailsInfo {
+  String? distanceText;
+  String? durationText;
+  String? distanceValue;
+  String? durationValue;
+  List<dynamic>? encodedPoints;
 
   DirectionDetailsInfo({
-    this.distance_text,
-    this.distance_value,
-    this.duration_text,
-    this.duration_value,
-    this.e_points
+    this.distanceText,
+    this.durationText,
+    this.distanceValue,
+    this.durationValue,
+    this.encodedPoints,
   });
 
+  DirectionDetailsInfo.fromJson(Map<dynamic, dynamic> json) {
+    distanceText = json['distance_text'];
+    distanceValue = json['distance_value'];
+    durationText = json['duration_text'];
+    durationValue = json['duration_value'];
+    encodedPoints = json['e_points'];
+  }
 }

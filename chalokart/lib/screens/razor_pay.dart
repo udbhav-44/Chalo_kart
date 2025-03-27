@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
+import '../utils/logger.dart';
 
 class RazorPay extends StatefulWidget {
   const RazorPay({super.key});
@@ -27,7 +28,7 @@ class _RazorPayState extends State<RazorPay> {
     try{
       _razorpay.open(options);
     }catch(e){
-      debugPrint(e.toString());
+      AppLogger.error('Payment error', e);
     }
   }
 

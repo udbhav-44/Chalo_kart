@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../utils/app_colors.dart';
-import 'reset_password_screen.dart';
 import 'sign_in_screen.dart';
 import 'dart:async';
 
@@ -15,38 +14,17 @@ class ForgotPasswordScreen extends StatefulWidget {
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
-  final _otpController = TextEditingController();
   final _authService = AuthService();
   bool _isLoading = false;
-  Timer? _resendTimer;
-  int _resendCountdown = 0;
-  bool _otpSent = false;
-  final bool _isVerifyingOtp = false;
-  bool _isResendingOtp = false;
+  bool _resetEmailSent = false;
 
   @override
   void dispose() {
     _emailController.dispose();
-    _otpController.dispose();
-    _resendTimer?.cancel();
     super.dispose();
   }
 
-  void _startResendTimer() {
-    _resendCountdown = 30;
-    _resendTimer?.cancel();
-    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        if (_resendCountdown > 0) {
-          _resendCountdown--;
-        } else {
-          timer.cancel();
-        }
-      });
-    });
-  }
-
-  Future<void> _handleSendOtp() async {
+  Future<void> _handleSendResetEmail() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
@@ -59,78 +37,27 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
       if (result['success']) {
         setState(() {
-          _otpSent = true;
-          _startResendTimer();
+          _resetEmailSent = true;
         });
         scaffoldContext.showSnackBar(const SnackBar(
           backgroundColor: Colors.green,
-          content: Text('OTP sent successfully. Please check your email.'),
+          content: Text('Password reset email sent successfully. Please check your email.'),
         ));
       } else {
         scaffoldContext.showSnackBar(SnackBar(
-          content: Text(result['message'] ?? 'Failed to send OTP'),
+          content: Text(result['message'] ?? 'Failed to send password reset email'),
           backgroundColor: Colors.red,
         ));
       }
     } catch (e) {
       if (!mounted) return;
       scaffoldContext.showSnackBar(SnackBar(
-        content: Text('Error sending OTP: $e'),
+        content: Text('Error sending reset email: $e'),
         backgroundColor: Colors.red,
       ));
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  Future<void> _handleVerifyOtp() async {
-    if (!_formKey.currentState!.validate() || _otpController.text.length != 6) return;
-
-    final navigator = Navigator.of(context);
-    navigator.pushReplacement(
-      MaterialPageRoute(
-        builder: (context) => ResetPasswordScreen(
-          email: _emailController.text,
-          otp: _otpController.text,
-        ),
-      ),
-    );
-  }
-
-  Future<void> _handleResendOtp() async {
-    if (_resendCountdown > 0 || _isResendingOtp) return;
-
-    setState(() => _isResendingOtp = true);
-    final scaffoldContext = ScaffoldMessenger.of(context);
-
-    try {
-      final result = await _authService.requestPasswordReset(_emailController.text);
-
-      if (!mounted) return;
-
-      if (result['success']) {
-        _startResendTimer();
-        scaffoldContext.showSnackBar(const SnackBar(
-          content: Text('OTP resent successfully'),
-          backgroundColor: Colors.green,
-        ));
-      } else {
-        scaffoldContext.showSnackBar(SnackBar(
-          content: Text(result['message'] ?? 'Failed to resend OTP'),
-          backgroundColor: Colors.red,
-        ));
-      }
-    } catch (e) {
-      if (!mounted) return;
-      scaffoldContext.showSnackBar(SnackBar(
-        content: Text('Error resending OTP: $e'),
-        backgroundColor: Colors.red,
-      ));
-    } finally {
-      if (mounted) {
-        setState(() => _isResendingOtp = false);
       }
     }
   }
@@ -191,7 +118,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       ),
                       const SizedBox(height: 20),
                       Text(
-                        'Enter your email address to receive a password reset OTP',
+                        _resetEmailSent
+                            ? 'We have sent a password reset link to your email. Please check your inbox and follow the instructions to reset your password.'
+                            : 'Enter your email address to receive a password reset link',
                         style: TextStyle(
                           color: Colors.grey[600],
                           fontFamily: 'AlbertSans',
@@ -199,54 +128,54 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         ),
                       ),
                       const SizedBox(height: 32),
-                      TextFormField(
-                        controller: _emailController,
-                        enabled: !_otpSent,
-                        style: const TextStyle(
-                          fontFamily: 'AlbertSans',
-                          fontSize: 15,
-                        ),
-                        decoration: InputDecoration(
-                          labelText: 'Email',
-                          labelStyle: const TextStyle(
+                      if (!_resetEmailSent)
+                        TextFormField(
+                          controller: _emailController,
+                          style: const TextStyle(
                             fontFamily: 'AlbertSans',
-                            color: Color.fromARGB(255, 105, 101, 101),
-                            fontWeight: FontWeight.w600,
                             fontSize: 15,
                           ),
-                          floatingLabelBehavior: FloatingLabelBehavior.never,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.grey[400]!),
+                          decoration: InputDecoration(
+                            labelText: 'Email',
+                            labelStyle: const TextStyle(
+                              fontFamily: 'AlbertSans',
+                              color: Color.fromARGB(255, 105, 101, 101),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                            ),
+                            floatingLabelBehavior: FloatingLabelBehavior.never,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: Colors.grey[400]!),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: Colors.grey[400]!),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: AppColors.primaryColor),
+                            ),
                           ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.grey[400]!),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(color: AppColors.primaryColor),
-                          ),
+                          keyboardType: TextInputType.emailAddress,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your email';
+                            }
+                            if (!value.contains('@')) {
+                              return 'Please enter a valid email';
+                            }
+                            return null;
+                          },
                         ),
-                        keyboardType: TextInputType.emailAddress,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your email';
-                          }
-                          if (!value.contains('@')) {
-                            return 'Please enter a valid email';
-                          }
-                          return null;
-                        },
-                      ),
-                      if (!_otpSent)
+                      if (!_resetEmailSent)
                         Padding(
                           padding: const EdgeInsets.only(top: 24),
                           child: SizedBox(
                             width: double.infinity,
                             height: 50,
                             child: ElevatedButton(
-                              onPressed: _isLoading ? null : _handleSendOtp,
+                              onPressed: _isLoading ? null : _handleSendResetEmail,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.primaryColor,
                                 shape: RoundedRectangleBorder(
@@ -263,7 +192,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                       ),
                                     )
                                   : const Text(
-                                      'Send Reset OTP',
+                                      'Send Reset Link',
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w600,
@@ -274,109 +203,38 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             ),
                           ),
                         ),
-                      if (_otpSent)
-                        AnimatedSlide(
-                          duration: const Duration(milliseconds: 400),
-                          curve: Curves.easeInOutCubic,
-                          offset: _otpSent ? const Offset(0, 0) : const Offset(0, 0.5),
-                          child: AnimatedOpacity(
-                            duration: const Duration(milliseconds: 400),
-                            curve: Curves.easeInOutCubic,
-                            opacity: _otpSent ? 1.0 : 0.0,
-                            child: Column(
-                              children: [
-                                const SizedBox(height: 24),
-                                TextFormField(
-                                  controller: _otpController,
-                                  keyboardType: TextInputType.number,
-                                  maxLength: 6,
-                                  style: const TextStyle(
-                                    fontFamily: 'AlbertSans',
-                                    fontSize: 15,
-                                  ),
-                                  decoration: InputDecoration(
-                                    labelText: 'Enter OTP',
-                                    labelStyle: const TextStyle(
-                                      fontFamily: 'AlbertSans',
-                                      color: Color.fromARGB(255, 105, 101, 101),
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 15,
-                                    ),
-                                    counterText: '',
-                                    floatingLabelBehavior: FloatingLabelBehavior.never,
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: BorderSide(color: Colors.grey[400]!),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: BorderSide(color: Colors.grey[400]!),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: const BorderSide(color: AppColors.primaryColor),
-                                    ),
-                                  ),
-                                  validator: (value) {
-                                    if (_otpSent) {
-                                      if (value == null || value.isEmpty) {
-                                        return 'Please enter the OTP';
-                                      }
-                                      if (value.length != 6) {
-                                        return 'Please enter a valid 6-digit OTP';
-                                      }
-                                    }
-                                    return null;
-                                  },
+                      if (_resetEmailSent)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 24),
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: ElevatedButton(
+                              onPressed: _isLoading ? null : _handleSendResetEmail,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primaryColor,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
-                                const SizedBox(height: 24),
-                                SizedBox(
-                                  width: double.infinity,
-                                  height: 50,
-                                  child: ElevatedButton(
-                                    onPressed: (_isVerifyingOtp || _otpController.text.length != 6)
-                                        ? null
-                                        : _handleVerifyOtp,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.primaryColor,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: _isLoading
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                       ),
-                                    ),
-                                    child: Text(
-                                      _isVerifyingOtp ? 'Verifying...' : 'Verify OTP',
-                                      style: const TextStyle(
+                                    )
+                                  : const Text(
+                                      'Resend Reset Link',
+                                      style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w600,
                                         color: Colors.white,
                                         fontFamily: 'AlbertSans',
                                       ),
                                     ),
-                                  ),
-                                ),
-                                if (_resendCountdown > 0)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 16),
-                                    child: Text(
-                                      'Resend OTP in $_resendCountdown seconds',
-                                      style: const TextStyle(
-                                        color: Colors.grey,
-                                        fontFamily: 'AlbertSans',
-                                      ),
-                                    ),
-                                  ),
-                                if (_resendCountdown == 0)
-                                  TextButton(
-                                    onPressed: _isResendingOtp ? null : _handleResendOtp,
-                                    child: Text(
-                                      _isResendingOtp ? 'Resending...' : 'Resend OTP',
-                                      style: const TextStyle(
-                                        fontFamily: 'AlbertSans',
-                                        color: AppColors.primaryColor,
-                                      ),
-                                    ),
-                                  ),
-                              ],
                             ),
                           ),
                         ),

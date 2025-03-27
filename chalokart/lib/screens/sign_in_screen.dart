@@ -1,13 +1,12 @@
-import 'package:chalokart/screens/main_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../utils/app_colors.dart';
-import '../services/auth_service.dart';
-import '../services/storage_service.dart';
-import '../utils/message_utils.dart';
 import 'forgot_password_screen.dart';
 import 'home_screen.dart';
 import 'sign_up_screen.dart';
 import '../global/global.dart';
+import '../utils/logger.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({Key? key}) : super(key: key);
@@ -30,56 +29,118 @@ class _SignInScreenState extends State<SignInScreen> {
     super.dispose();
   }
 
+  // Direct Firebase sign in - no service layer
   void _handleSignIn() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
       });
 
-      final authService = AuthService();
-      final result = await authService.signIn(
-        _emailController.text,
-        _passwordController.text,
-      );
-
-      if (!mounted) return;
-
-      if (result['success']) {
-        final data = result['data'];
-        final storageService = StorageService();
-
-        await storageService.saveAuthData(
-          token: data['tokens']['access'],
-          userId: data['user_id']?.toString() ?? '0',
-          userName: data['name'] ?? 'User',
+      try {
+        // Get email and password from controllers
+        final email = _emailController.text.trim();
+        final password = _passwordController.text.trim();
+        
+        debugPrint('Signing in with email: $email');
+        
+        // Use Firebase Auth directly - no extra service layer
+        final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: email,
+          password: password
         );
-        currentUserEmail = _emailController.text;
-
-        print('User signed in successfully:');
-        final userDetails = await authService.fetchUserDetails(currentUserEmail);
-        // print('User details: $userDetails');
         
         if (!mounted) return;
-
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const MainScreen()),
-          (route) => false,
-        );
-      } else {
-        setState(() {
-          _emailController.clear();
-          _passwordController.clear();
-          _showPassword = false;
-          _isLoading = false;
-        });
         
-        showMessage(
-          context,
-          result['message'] ?? 'Failed to sign in',
-          isError: true,
-        );
+        // Get user from credential
+        final user = credential.user;
+        
+        if (user != null) {
+          // Save basic auth info to SharedPreferences directly - no complex objects
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('auth_token', 'logged_in');
+            await prefs.setString('user_id', user.uid);
+            await prefs.setString('user_email', user.email ?? '');
+            await prefs.setString('user_name', user.displayName ?? email.split('@')[0]);
+            await prefs.setBool('is_logged_in', true);
+          } catch (e) {
+            debugPrint('Warning: Could not save user data: $e');
+          }
+          
+          // Set global variable
+          currentUserEmail = email;
+          
+          debugPrint('Login successful. User ID: ${user.uid}');
+          
+          if (!mounted) return;
+          
+          // Navigate to HomeScreen
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+          );
+        } else {
+          debugPrint('User is null after successful authentication');
+          _showError('Failed to sign in. Please try again.');
+        }
+      } on FirebaseAuthException catch (e) {
+        debugPrint('Firebase Auth error: ${e.code}');
+        
+        String errorMessage;
+        switch (e.code) {
+          case 'user-not-found':
+            errorMessage = 'No user found with this email.';
+            break;
+          case 'wrong-password':
+            errorMessage = 'Wrong password provided.';
+            break;
+          case 'invalid-credential':
+            errorMessage = 'Invalid email or password.';
+            break;
+          case 'user-disabled':
+            errorMessage = 'This account has been disabled.';
+            break;
+          case 'too-many-requests':
+            errorMessage = 'Too many sign-in attempts. Please try again later.';
+            break;
+          case 'operation-not-allowed':
+            errorMessage = 'Email/password sign-in is not enabled.';
+            break;
+          case 'network-request-failed':
+            errorMessage = 'Network error. Please check your connection.';
+            break;
+          default:
+            errorMessage = e.message ?? 'Failed to sign in.';
+        }
+        
+        if (mounted) {
+          _showError(errorMessage);
+        }
+      } catch (e) {
+        debugPrint('Error during sign in: $e');
+        
+        if (mounted) {
+          _showError('An unexpected error occurred. Please try again.');
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _passwordController.clear();
+            _showPassword = false;
+          });
+        }
       }
     }
+  }
+  
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 
   @override

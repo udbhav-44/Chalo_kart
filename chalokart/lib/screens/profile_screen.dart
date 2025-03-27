@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import '../services/auth_service.dart';
 import '../global/global.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -14,13 +14,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final nameTextEditingController = TextEditingController();
   final phoneTextEditingController = TextEditingController();
   final emailTextEditingController = TextEditingController();
-
-  late Future<Map<String, dynamic>> userDetailsFuture;
+  
+  // User data map
+  Map<String, dynamic> userData = {
+    'name': 'Loading...',
+    'phone_number': 'Loading...',
+    'email': 'Loading...',
+  };
+  
+  bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    userDetailsFuture = AuthService().fetchUserDetails(currentUserEmail);
+    _loadUserDetails();
+  }
+  
+  Future<void> _loadUserDetails() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+      
+      // Get current user directly from Firebase
+      final user = FirebaseAuth.instance.currentUser;
+      
+      if (user != null) {
+        // Reload user to get latest data
+        await user.reload();
+        
+        setState(() {
+          userData = {
+            'name': user.displayName ?? 'User',
+            'phone_number': user.phoneNumber ?? 'Not set',
+            'email': user.email ?? currentUserEmail,
+          };
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _errorMessage = 'User not found or not logged in';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading user details: $e');
+      setState(() {
+        _errorMessage = 'Failed to load user details: ${e.toString()}';
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> showUserNameDialogAlert(BuildContext context, String name) {
@@ -46,20 +91,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   return;
                 }
 
-                // Call API to update the name
-                final response = await AuthService().updateUserDetails(currentUserEmail, newName);
-
-                if (response['success']) {
-                  Fluttertoast.showToast(msg: "Name updated successfully.");
-
-                  // Refresh the user details after updating the name
-                  setState(() {
-                    userDetailsFuture = AuthService().fetchUserDetails(currentUserEmail);
-                  });
-
-                  Navigator.pop(context);
-                } else {
-                  Fluttertoast.showToast(msg: response['message'] ?? "Failed to update name.");
+                try {
+                  // Update user display name directly with Firebase
+                  final user = FirebaseAuth.instance.currentUser;
+                  if (user != null) {
+                    await user.updateDisplayName(newName);
+                    
+                    Fluttertoast.showToast(msg: "Name updated successfully.");
+                    
+                    // Refresh the user details
+                    setState(() {
+                      userData['name'] = newName;
+                    });
+                    
+                    Navigator.pop(context);
+                  } else {
+                    Fluttertoast.showToast(msg: "User not found or not logged in.");
+                  }
+                } catch (e) {
+                  debugPrint('Error updating user name: $e');
+                  Fluttertoast.showToast(msg: "Failed to update name: ${e.toString()}");
                 }
               },
               child: const Text("OK", style: TextStyle(color: Colors.black)),
@@ -90,93 +141,74 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           centerTitle: true,
         ),
-        body: FutureBuilder<Map<String, dynamic>>(
-          future: userDetailsFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
+        body: _isLoading 
+          ? const Center(child: CircularProgressIndicator()) 
+          : _errorMessage != null 
+              ? Center(child: Text(_errorMessage!, style: const TextStyle(color: Colors.red, fontSize: 16)))
+              : Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 50),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(50),
+                        decoration: const BoxDecoration(
+                          color: Colors.lightBlue,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.person, color: Colors.white),
+                      ),
+                      const SizedBox(height: 20),
 
-            if (snapshot.hasError || !(snapshot.data?['success'] ?? false)) {
-              return Center(
-                child: Text(
-                  snapshot.data?['message'] ?? "Failed to fetch user details.",
-                  style: const TextStyle(color: Colors.red, fontSize: 16),
+                      // Name Edit
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            userData['name'],
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () => showUserNameDialogAlert(context, userData['name']),
+                            icon: const Icon(Icons.edit),
+                          ),
+                        ],
+                      ),
+                      const Divider(thickness: 1),
+
+                      // Phone Edit
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            userData['phone_number'],
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Divider(thickness: 1),
+
+                      // Email
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            userData['email'],
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              );
-            }
-
-            final userData = snapshot.data!['data'];
-            final String name = userData['name'] ?? "Unknown";
-            final String phone = userData['phone_number'] ?? "N/A";
-            final String email = userData['email'] ?? "N/A";
-
-            return Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 50),
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(50),
-                    decoration: const BoxDecoration(
-                      color: Colors.lightBlue,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.person, color: Colors.white),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Name Edit
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        name,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => showUserNameDialogAlert(context, name),
-                        icon: const Icon(Icons.edit),
-                      ),
-                    ],
-                  ),
-                  const Divider(thickness: 1),
-
-                  // Phone Edit
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        phone,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Divider(thickness: 1),
-
-                  // Email
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        email,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
       ),
     );
   }
