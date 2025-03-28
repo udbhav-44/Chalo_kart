@@ -1,0 +1,2 @@
+/Users/snehasissatapathy/Desktop/New/Chalo_kart/chalokart/android/app/.cxx/Debug/1b0y5354/x86_64/CMakeFiles/edit_cache.dir
+/Users/snehasissatapathy/Desktop/New/Chalo_kart/chalokart/android/app/.cxx/Debug/1b0y5354/x86_64/CMakeFiles/rebuild_cache.dir
